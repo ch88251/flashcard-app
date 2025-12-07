@@ -19,7 +19,7 @@ try {
   useKV = false;
 }
 
-const dataPath = path.join(process.cwd(), 'server', 'data.json');
+// Single source of truth: public/data.json
 const publicDataPath = path.join(process.cwd(), 'public', 'data.json');
 
 async function readData() {
@@ -40,20 +40,9 @@ async function readData() {
     }
     return { categories, flashcards };
   }
-  // On production (Vercel), prefer the built static public/data.json
-  const isProd = process.env.NODE_ENV === 'production';
-  const targetPath = isProd ? publicDataPath : dataPath;
-  try {
-    const raw = fs.readFileSync(targetPath, 'utf8');
-    return JSON.parse(raw);
-  } catch (e) {
-    // Fallback: if public path not readable (e.g., local), try server data.json
-    if (targetPath !== dataPath) {
-      const raw = fs.readFileSync(dataPath, 'utf8');
-      return JSON.parse(raw);
-    }
-    throw e;
-  }
+  // Always read from public/data.json so deploys use latest pushed data
+  const raw = fs.readFileSync(publicDataPath, 'utf8');
+  return JSON.parse(raw);
 }
 
 async function writeData(model) {
@@ -67,7 +56,8 @@ async function writeData(model) {
   if (isProd) {
     return;
   }
-  fs.writeFileSync(dataPath, JSON.stringify(model, null, 2), 'utf8');
+  // In local dev, write to public/data.json as the single source of truth
+  fs.writeFileSync(publicDataPath, JSON.stringify(model, null, 2), 'utf8');
 }
 
 function nextId(items) {
