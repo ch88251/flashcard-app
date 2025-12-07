@@ -16,11 +16,11 @@ function Flashcard({ front, back, backFormat = 'sentence', flipped, onFlip }) {
       }
       
       return (
-        <ul className="text-left space-y-1 max-w-full">
+        <ul className="text-left space-y-2 max-w-full mt-2">
           {items.map((item, index) => (
-            <li key={index} className="flex items-start">
+            <li key={index} className="flex items-start pt-1">
               <span className="text-green-600 mr-2 flex-shrink-0">•</span>
-              <span className="break-words">{item.trim()}</span>
+              <span className="break-words leading-relaxed">{item.trim()}</span>
             </li>
           ))}
         </ul>
@@ -28,17 +28,20 @@ function Flashcard({ front, back, backFormat = 'sentence', flipped, onFlip }) {
     }
     
     // Default sentence format
-    return <div className="break-words">{back}</div>;
+    return <div className="break-words mt-2 leading-relaxed">{back}</div>;
   };
 
+  const containerBase = "w-[320px] md:w-[500px] h-[240px] md:h-[300px] flex items-start justify-center rounded-2xl shadow-xl p-8 text-xl md:text-2xl select-none transition-all duration-500 ease-in-out cursor-pointer overflow-y-auto";
+  const containerClass = `${containerBase} ${flipped ? 'bg-green-100 pt-4' : 'bg-white'}`;
   return (
-    <div
-      className={`w-[320px] md:w-[500px] h-[240px] md:h-[300px] flex items-center justify-center rounded-2xl shadow-xl p-8 text-xl md:text-2xl select-none transition-all duration-500 ease-in-out cursor-pointer overflow-y-auto ${
-        flipped ? "bg-green-100" : "bg-white"
-      }`}
-      onClick={onFlip}
-    >
-      {flipped ? renderBack() : <div className="text-center break-words">{front}</div>}
+    <div className={containerClass} onClick={onFlip}>
+      {flipped ? (
+        <div className="w-full pt-3 md:pt-4">
+          {renderBack()}
+        </div>
+      ) : (
+        <div className="text-center break-words w-full">{front}</div>
+      )}
     </div>
   );
 }
