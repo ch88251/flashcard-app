@@ -181,6 +181,20 @@ class FlashcardAPI {
     throw new Error('updateFlashcard is not supported in static JSON mode');
   }
 
+  async login(username, password) {
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'Login failed');
+    }
+    cachePromise = null;
+    return true;
+  }
+
   async deleteFlashcard(id) {
     // Try backend first
     try {
@@ -224,19 +238,6 @@ class FlashcardAPI {
       }
       if (response.status === 401) throw new Error('Unauthorized');
     } catch (_) {}
-  async login(username, password) {
-    const response = await fetch('/api/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password }),
-    });
-    if (!response.ok) {
-      const err = await response.json().catch(() => ({}));
-      throw new Error(err.error || 'Login failed');
-    }
-    cachePromise = null;
-    return true;
-  }
 
     // Fallback: remove from localStorage overlay and filter reads
     const overlayKey = 'flashcards_overlay';
