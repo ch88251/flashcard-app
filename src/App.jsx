@@ -90,7 +90,12 @@ function App() {
   }
 
   if (currentView === 'admin') {
-    return <AdminPanel onBack={() => setCurrentView('flashcards')} />;
+    return (
+      <AdminPanel 
+        onBack={() => setCurrentView('flashcards')}
+        onCategoriesChanged={(updated) => setCategories(updated)}
+      />
+    );
   }
 
   return (

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { flashcardAPI } from './services/flashcardAPI';
 
-function AdminPanel({ onBack }) {
+function AdminPanel({ onBack, onCategoriesChanged }) {
   const [categories, setCategories] = useState([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
   const [flashcards, setFlashcards] = useState([]);
@@ -57,7 +57,8 @@ function AdminPanel({ onBack }) {
     try {
       await flashcardAPI.createCategory(newCategoryName);
       setNewCategoryName('');
-      loadCategories();
+      await loadCategories();
+      if (onCategoriesChanged) onCategoriesChanged(await flashcardAPI.fetchCategories());
     } catch (err) {
       setError('Failed to create category: ' + err.message);
     }
@@ -108,7 +109,8 @@ function AdminPanel({ onBack }) {
       if (selectedCategoryId == id) {
         setSelectedCategoryId('');
       }
-      loadCategories();
+      await loadCategories();
+      if (onCategoriesChanged) onCategoriesChanged(await flashcardAPI.fetchCategories());
     } catch (err) {
       setError('Failed to delete category: ' + err.message);
     }

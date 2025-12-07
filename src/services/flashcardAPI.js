@@ -168,11 +168,70 @@ class FlashcardAPI {
   }
 
   async deleteFlashcard(id) {
-    throw new Error('deleteFlashcard is not supported in static JSON mode');
+    // Try backend first
+    try {
+      const response = await fetch(`/api/flashcards/${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        cachePromise = null;
+        return;
+      }
+    } catch (_) {}
+
+    // Fallback: remove from localStorage overlay
+    const overlayKey = 'flashcards_overlay';
+    try {
+      const raw = localStorage.getItem(overlayKey);
+      if (raw) {
+        const overlay = JSON.parse(raw);
+        const before = Array.isArray(overlay.flashcards) ? overlay.flashcards.length : 0;
+        overlay.flashcards = (overlay.flashcards || []).filter(fc => String(fc.id) !== String(id));
+        if (Array.isArray(overlay.flashcards) && overlay.flashcards.length !== before) {
+          localStorage.setItem(overlayKey, JSON.stringify(overlay));
+          const base = await loadData();
+          cachePromise = Promise.resolve({
+            categories: base.categories,
+            flashcards: base.flashcards.filter(fc => String(fc.id) !== String(id)),
+          });
+          return;
+        }
+      }
+    } catch (_) {}
+    throw new Error('Failed to delete flashcard');
   }
 
   async deleteCategory(id) {
-    throw new Error('deleteCategory is not supported in static JSON mode');
+    // Try backend first; cascades flashcards on server
+    try {
+      const response = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
+      if (response.ok) {
+        cachePromise = null;
+        return;
+      }
+    } catch (_) {}
+
+    // Fallback: remove from localStorage overlay and filter reads
+    const overlayKey = 'flashcards_overlay';
+    try {
+      const raw = localStorage.getItem(overlayKey);
+      const overlay = raw ? JSON.parse(raw) : {};
+      const beforeCats = Array.isArray(overlay.categories) ? overlay.categories.length : 0;
+      overlay.categories = (overlay.categories || []).filter(c => String(c.id) !== String(id));
+      // Also remove flashcards in that category from overlay
+      const beforeCards = Array.isArray(overlay.flashcards) ? overlay.flashcards.length : 0;
+      overlay.flashcards = (overlay.flashcards || []).filter(f => String(f.category_id) !== String(id));
+      const changed = (Array.isArray(overlay.categories) && overlay.categories.length !== beforeCats) ||
+                      (Array.isArray(overlay.flashcards) && overlay.flashcards.length !== beforeCards);
+      if (changed) {
+        localStorage.setItem(overlayKey, JSON.stringify(overlay));
+        const base = await loadData();
+        cachePromise = Promise.resolve({
+          categories: base.categories.filter(c => String(c.id) !== String(id)),
+          flashcards: base.flashcards.filter(f => String(f.category_id) !== String(id)),
+        });
+        return;
+      }
+    } catch (_) {}
+    throw new Error('Failed to delete category');
   }
 
   async getCategoryStats(id) {

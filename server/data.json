@@ -5,12 +5,6 @@
       "name": "Core Python",
       "created_at": "2025-11-24 04:36:45",
       "updated_at": "2025-11-24 04:36:45"
-    },
-    {
-      "id": 2,
-      "name": "Pytest",
-      "created_at": "2025-12-07 05:50:38",
-      "updated_at": "2025-12-07 05:50:38"
     }
   ],
   "flashcards": [
@@ -229,15 +223,6 @@
       "back_format": "sentence",
       "created_at": "2025-12-06 03:15:58",
       "updated_at": "2025-12-06 03:15:58"
-    },
-    {
-      "id": 25,
-      "category_id": 2,
-      "front": "What is a fixture?",
-      "back": "In pytest, a fixture is a special function decorated with @pytest.fixture that provides a fixed baseline for tests to execute reliably and produce consistent, repeatable results. Fixtures are used to set up the necessary environment, data, or resources required by test functions, and they can also handle the cleanup (teardown) after tests are finished.",
-      "back_format": "sentence",
-      "created_at": "2025-12-07 05:56:38",
-      "updated_at": "2025-12-07 05:56:38"
     }
   ]
 }
