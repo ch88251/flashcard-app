@@ -1,5 +1,6 @@
 import { statements } from '../server/database.js';
 import { requireAuth } from './_auth.js';
+import { readJsonBody } from './_utils.js';
 
 export default async function handler(req, res) {
   try {
@@ -17,7 +18,9 @@ export default async function handler(req, res) {
       if (method === 'POST') {
         const auth = requireAuth(req, res);
         if (!auth) return;
-        const { category_id, front, back, back_format = 'sentence' } = req.body || {};
+        const body = (req.body && typeof req.body === 'object') ? req.body : await readJsonBody(req);
+        const { category_id, front, back } = body || {};
+        const back_format = body?.back_format ?? 'sentence';
         if (!category_id || !front || !back) {
           return res.status(400).json({ error: 'Category ID, front, and back are required' });
         }
@@ -48,7 +51,9 @@ export default async function handler(req, res) {
       if (method === 'PUT') {
         const auth = requireAuth(req, res);
         if (!auth) return;
-        const { front, back, back_format = 'sentence' } = req.body || {};
+        const body = (req.body && typeof req.body === 'object') ? req.body : await readJsonBody(req);
+        const { front, back } = body || {};
+        const back_format = body?.back_format ?? 'sentence';
         if (!front || !back) {
           return res.status(400).json({ error: 'Front and back are required' });
         }

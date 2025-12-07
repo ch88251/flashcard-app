@@ -1,5 +1,6 @@
 import { statements } from '../server/database.js';
 import { requireAuth } from './_auth.js';
+import { readJsonBody } from './_utils.js';
 
 export default async function handler(req, res) {
   try {
@@ -17,7 +18,7 @@ export default async function handler(req, res) {
       if (method === 'POST') {
         const auth = requireAuth(req, res);
         if (!auth) return;
-        const { name } = req.body || {};
+        const { name } = (req.body && typeof req.body === 'object') ? req.body : await readJsonBody(req);
         if (!name) return res.status(400).json({ error: 'Category name is required' });
         try {
           const created = await statements.insertCategory(name);
@@ -43,7 +44,7 @@ export default async function handler(req, res) {
       if (method === 'PUT') {
         const auth = requireAuth(req, res);
         if (!auth) return;
-        const { name } = req.body || {};
+        const { name } = (req.body && typeof req.body === 'object') ? req.body : await readJsonBody(req);
         if (!name) return res.status(400).json({ error: 'Category name is required' });
         try {
           const updated = await statements.updateCategory(id, name);
