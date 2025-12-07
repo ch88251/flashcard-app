@@ -278,13 +278,28 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
                         />
                         <span className="text-sm">List</span>
                       </label>
+                      <label className="flex items-center">
+                        <input
+                          type="radio"
+                          name="backFormat"
+                          value="code"
+                          checked={newFlashcard.backFormat === 'code'}
+                          onChange={(e) => setNewFlashcard({...newFlashcard, backFormat: e.target.value})}
+                          className="mr-2"
+                        />
+                        <span className="text-sm">Code</span>
+                      </label>
                     </div>
                   </div>
                   
                   <textarea
                     value={newFlashcard.back}
                     onChange={(e) => setNewFlashcard({...newFlashcard, back: e.target.value})}
-                    placeholder={newFlashcard.backFormat === 'list' ? 'Back side (separate items with new lines, semicolons, or pipes)' : 'Back side'}
+                    placeholder={
+                      newFlashcard.backFormat === 'list'
+                        ? 'Back side (separate items with new lines, semicolons, or pipes)'
+                        : (newFlashcard.backFormat === 'code' ? 'Paste code here' : 'Back side')
+                    }
                     rows="3"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
@@ -347,6 +362,17 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
                                     className="mr-1"
                                   />
                                   <span className="text-xs">List</span>
+                                </label>
+                                <label className="flex items-center">
+                                  <input
+                                    type="radio"
+                                    name="editBackFormat"
+                                    value="code"
+                                    checked={editingCard.back_format === 'code'}
+                                    onChange={(e) => setEditingCard({...editingCard, back_format: e.target.value})}
+                                    className="mr-1"
+                                  />
+                                  <span className="text-xs">Code</span>
                                 </label>
                               </div>
                             </div>

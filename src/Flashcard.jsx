@@ -27,6 +27,14 @@ function Flashcard({ front, back, backFormat = 'sentence', flipped, onFlip }) {
       );
     }
     
+    if (backFormat === 'code') {
+      // Render code with monospace styling and preserved whitespace
+      return (
+        <pre className="w-full mt-2 p-3 bg-gray-900 text-gray-100 rounded-lg overflow-auto text-sm md:text-base leading-relaxed">
+          <code className="font-mono whitespace-pre-wrap break-words">{back}</code>
+        </pre>
+      );
+    }
     // Default sentence format
     return <div className="break-words mt-2 leading-relaxed">{back}</div>;
   };

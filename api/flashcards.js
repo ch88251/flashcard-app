@@ -60,7 +60,7 @@ export default async function handler(req, res) {
         if (!category_id || !front || !back) {
           return res.status(400).json({ error: 'Category ID, front, and back are required' });
         }
-        if (!['sentence', 'list'].includes(back_format)) {
+        if (!['sentence', 'list', 'code'].includes(back_format)) {
           return res.status(400).json({ error: 'back_format must be either "sentence" or "list"' });
         }
         try {
@@ -114,7 +114,7 @@ export default async function handler(req, res) {
         if (!front || !back) {
           return res.status(400).json({ error: 'Front and back are required' });
         }
-        if (!['sentence', 'list'].includes(back_format)) {
+        if (!['sentence', 'list', 'code'].includes(back_format)) {
           return res.status(400).json({ error: 'back_format must be either "sentence" or "list"' });
         }
         const updated = await statements.updateFlashcard(id, front, back, back_format);
