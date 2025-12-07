@@ -490,6 +490,15 @@
       "back_format": "code",
       "created_at": "2025-12-07 20:37:49",
       "updated_at": "2025-12-07 20:37:49"
+    },
+    {
+      "id": 54,
+      "category_id": 1,
+      "front": "Explain the assignment expression operator (aka walrus operator).",
+      "back": "It assigns a value to a variable as part of an expression — meaning you can both evaluate and store a value at the same time.",
+      "back_format": "sentence",
+      "created_at": "2025-12-07 21:00:01",
+      "updated_at": "2025-12-07 21:00:01"
     }
   ]
 }
