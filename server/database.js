@@ -40,14 +40,31 @@ async function readData() {
     }
     return { categories, flashcards };
   }
-  const raw = fs.readFileSync(dataPath, 'utf8');
-  return JSON.parse(raw);
+  // On production (Vercel), prefer the built static public/data.json
+  const isProd = process.env.NODE_ENV === 'production';
+  const targetPath = isProd ? publicDataPath : dataPath;
+  try {
+    const raw = fs.readFileSync(targetPath, 'utf8');
+    return JSON.parse(raw);
+  } catch (e) {
+    // Fallback: if public path not readable (e.g., local), try server data.json
+    if (targetPath !== dataPath) {
+      const raw = fs.readFileSync(dataPath, 'utf8');
+      return JSON.parse(raw);
+    }
+    throw e;
+  }
 }
 
 async function writeData(model) {
   if (useKV && kv) {
     await kv.set('categories', model.categories || []);
     await kv.set('flashcards', model.flashcards || []);
+    return;
+  }
+  // In production on Vercel, filesystem is immutable; skip writes
+  const isProd = process.env.NODE_ENV === 'production';
+  if (isProd) {
     return;
   }
   fs.writeFileSync(dataPath, JSON.stringify(model, null, 2), 'utf8');
