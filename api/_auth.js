@@ -36,7 +36,7 @@ export function getCookie(req, name) {
 }
 
 export function requireAuth(req, res) {
-  const secret = process.env.AUTH_SECRET || 'dev-secret';
+  const secret = process.env.AUTH_SECRET || process.env.ADMIN_SECRET || 'dev-secret';
   const token = getCookie(req, 'auth');
   const payload = verifyToken(token, secret);
   if (!payload) {

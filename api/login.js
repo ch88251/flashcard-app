@@ -13,7 +13,7 @@ export default async function handler(req, res) {
   if (username !== expectedUser || password !== expectedPass) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
-  const secret = process.env.AUTH_SECRET || 'dev-secret';
+  const secret = process.env.AUTH_SECRET || process.env.ADMIN_SECRET || 'dev-secret';
   const token = signToken({ sub: username, exp: Date.now() + 24 * 60 * 60 * 1000 }, secret);
   const isProd = process.env.NODE_ENV === 'production';
   const cookie = [
