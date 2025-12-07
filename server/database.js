@@ -1,63 +1,37 @@
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 dotenv.config();
 
-let useKV = false;
-let kv = null;
-try {
-  // Detect Vercel KV environment
-  if (process.env.KV_REST_API_URL || process.env.KV_URL) {
-    // Lazy require to avoid bundling for local
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    kv = require('@vercel/kv');
-    useKV = true;
-  }
-} catch (_) {
-  useKV = false;
-}
+// Equivalent of __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
-// Single source of truth: public/data.json
-const publicDataPath = path.join(process.cwd(), 'public', 'data.json');
+// repo root = one level up from this file
+const repoRoot = path.resolve(__dirname, '..');
+const publicDataPath = path.join(repoRoot, 'public', 'data.json');
 
 async function readData() {
-  if (useKV && kv) {
-    const categories = (await kv.get('categories')) || [];
-    const flashcards = (await kv.get('flashcards')) || [];
-    // If KV empty, seed from public/data.json (read-only)
-    if ((!categories || categories.length === 0) && (!flashcards || flashcards.length === 0)) {
-      try {
-        const raw = fs.readFileSync(publicDataPath, 'utf8');
-        const parsed = JSON.parse(raw);
-        await kv.set('categories', parsed.categories || []);
-        await kv.set('flashcards', parsed.flashcards || []);
-        return { categories: parsed.categories || [], flashcards: parsed.flashcards || [] };
-      } catch (_) {
-        return { categories: [], flashcards: [] };
-      }
-    }
-    return { categories, flashcards };
-  }
-  // Always read from public/data.json so deploys use latest pushed data
   const raw = fs.readFileSync(publicDataPath, 'utf8');
   return JSON.parse(raw);
 }
 
 async function writeData(model) {
-  if (useKV && kv) {
-    await kv.set('categories', model.categories || []);
-    await kv.set('flashcards', model.flashcards || []);
-    return;
-  }
   // In production on Vercel, filesystem is immutable; skip writes
   const isProd = process.env.NODE_ENV === 'production';
   if (isProd) {
     return;
   }
-  // In local dev, write to public/data.json as the single source of truth
-  fs.writeFileSync(publicDataPath, JSON.stringify(model, null, 2), 'utf8');
+
+  try {
+    fs.writeFileSync(publicDataPath, JSON.stringify(model, null, 2), 'utf8');
+  } catch (e) {
+    console.error('Failed to write public/data.json at', publicDataPath, e);
+    throw e;
+  }
 }
 
 function nextId(items) {
@@ -119,7 +93,7 @@ const statements = {
   },
 
   // Flashcards
-  async insertFlashcard(category_id, front, back, back_format) {
+  async insertFlashcard(category_id, front, back, back_format, code_language) {
     const model = await readData();
     const cat = model.categories.find(c => String(c.id) === String(category_id));
     if (!cat) {
@@ -129,7 +103,7 @@ const statements = {
     }
     const id = nextId(model.flashcards);
     const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    const newCard = { id, category_id: Number(category_id), front, back, back_format, created_at: now, updated_at: now };
+    const newCard = { id, category_id: Number(category_id), front, back, back_format, code_language, created_at: now, updated_at: now };
     model.flashcards.push(newCard);
     await writeData(model);
     return newCard;
@@ -171,13 +145,16 @@ const statements = {
     const category_name = (model.categories.find(c => c.id === f.category_id) || {}).name;
     return { ...f, category_name };
   },
-  async updateFlashcard(id, front, back, back_format) {
+  async updateFlashcard(id, front, back, back_format, code_language) {
     const model = await readData();
     const f = model.flashcards.find(fc => String(fc.id) === String(id));
     if (!f) return null;
     f.front = front;
     f.back = back;
     f.back_format = back_format;
+    if (typeof code_language !== 'undefined') {
+      f.code_language = code_language;
+    }
     f.updated_at = new Date().toISOString().replace('T', ' ').slice(0, 19);
     await writeData(model);
     const category_name = (model.categories.find(c => c.id === f.category_id) || {}).name;

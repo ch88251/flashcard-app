@@ -14,7 +14,7 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
   
   // Form states
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [newFlashcard, setNewFlashcard] = useState({ front: '', back: '', backFormat: 'sentence' });
+  const [newFlashcard, setNewFlashcard] = useState({ front: '', back: '', backFormat: 'sentence', codeLanguage: '' });
   const [editingCard, setEditingCard] = useState(null);
 
   // Load categories on mount
@@ -75,8 +75,8 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
     if (isReadOnly) { setError('Read-only on production. Edit locally, then redeploy.'); return; }
 
     try {
-      await flashcardAPI.createFlashcard(selectedCategoryId, newFlashcard.front, newFlashcard.back, newFlashcard.backFormat);
-      setNewFlashcard({ front: '', back: '', backFormat: 'sentence' });
+      await flashcardAPI.createFlashcard(selectedCategoryId, newFlashcard.front, newFlashcard.back, newFlashcard.backFormat, newFlashcard.codeLanguage || undefined);
+      setNewFlashcard({ front: '', back: '', backFormat: 'sentence', codeLanguage: '' });
       loadFlashcards();
     } catch (err) {
       setError('Failed to create flashcard: ' + err.message);
@@ -89,7 +89,7 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
     if (isReadOnly) { setError('Read-only on production. Edit locally, then redeploy.'); return; }
 
     try {
-      await flashcardAPI.updateFlashcard(editingCard.id, editingCard.front, editingCard.back, editingCard.back_format);
+      await flashcardAPI.updateFlashcard(editingCard.id, editingCard.front, editingCard.back, editingCard.back_format, editingCard.code_language || undefined);
       setEditingCard(null);
       loadFlashcards();
     } catch (err) {
@@ -252,6 +252,18 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
                     rows="2"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
+                  {newFlashcard.backFormat === 'code' && (
+                    <div className="space-y-1">
+                      <label className="block text-sm font-medium text-gray-700">Language (optional):</label>
+                      <input
+                        type="text"
+                        value={newFlashcard.codeLanguage}
+                        onChange={(e) => setNewFlashcard({ ...newFlashcard, codeLanguage: e.target.value })}
+                        placeholder="e.g., javascript, python, bash"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
+                    </div>
+                  )}
                   
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Back side format:</label>
@@ -375,6 +387,18 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
                                   <span className="text-xs">Code</span>
                                 </label>
                               </div>
+                              {editingCard.back_format === 'code' && (
+                                <div className="mt-2">
+                                  <label className="block text-xs font-medium text-gray-700 mb-1">Language (optional):</label>
+                                  <input
+                                    type="text"
+                                    value={editingCard.code_language || ''}
+                                    onChange={(e) => setEditingCard({ ...editingCard, code_language: e.target.value })}
+                                    placeholder="e.g., javascript, python, bash"
+                                    className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                                  />
+                                </div>
+                              )}
                             </div>
                             
                             <textarea
@@ -416,7 +440,7 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
                             </div>
                             
                             <div className="text-sm text-gray-700 mb-2">
-                              {(card.back_format === 'list') ? (
+                              {card.back_format === 'list' ? (
                                 <div className="pl-2">
                                   {card.back.split(/[\n;|]/).filter(item => item.trim()).map((item, index) => (
                                     <div key={index} className="flex items-start mb-1">
@@ -425,6 +449,10 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
                                     </div>
                                   ))}
                                 </div>
+                              ) : card.back_format === 'code' ? (
+                                <pre className="mt-1 p-2 bg-gray-900 text-gray-100 rounded overflow-auto text-xs">
+                                  <code className={`font-mono whitespace-pre ${card.code_language ? `language-${card.code_language}` : ''}`}>{card.back}</code>
+                                </pre>
                               ) : (
                                 card.back
                               )}

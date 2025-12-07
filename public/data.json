@@ -481,6 +481,15 @@
       "back_format": "list",
       "created_at": "2025-12-07 17:44:09",
       "updated_at": "2025-12-07 17:44:09"
+    },
+    {
+      "id": 52,
+      "category_id": 1,
+      "front": "Write some code",
+      "back": "# A comment\ndef myFunc(self, a, b)",
+      "back_format": "code",
+      "created_at": "2025-12-07 20:20:16",
+      "updated_at": "2025-12-07 20:20:16"
     }
   ]
 }

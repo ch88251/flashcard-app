@@ -1,4 +1,8 @@
-function Flashcard({ front, back, backFormat = 'sentence', flipped, onFlip }) {
+import { useEffect, useRef } from 'react';
+import hljs from 'highlight.js';
+import 'highlight.js/styles/github-dark.css';
+
+function Flashcard({ front, back, backFormat = 'sentence', code_language, flipped, onFlip }) {
   const renderBack = () => {
     if (backFormat === 'list') {
       // Split the back content into list items
@@ -28,10 +32,19 @@ function Flashcard({ front, back, backFormat = 'sentence', flipped, onFlip }) {
     }
     
     if (backFormat === 'code') {
-      // Render code with monospace styling and preserved whitespace
+      // Render code with highlighting and preserved whitespace/indentation
+      const codeRef = useRef(null);
+      useEffect(() => {
+        if (codeRef.current) {
+          // Auto-detect language and apply highlighting
+          hljs.highlightElement(codeRef.current);
+        }
+      }, [back]);
+
+      const langClass = code_language ? `language-${code_language}` : '';
       return (
         <pre className="w-full mt-2 p-3 bg-gray-900 text-gray-100 rounded-lg overflow-auto text-sm md:text-base leading-relaxed">
-          <code className="font-mono whitespace-pre-wrap break-words">{back}</code>
+          <code ref={codeRef} className={`font-mono whitespace-pre ${langClass}`}>{back}</code>
         </pre>
       );
     }

@@ -124,7 +124,7 @@ class FlashcardAPI {
     return newCat;
   }
 
-  async createFlashcard(categoryId, front, back, backFormat = 'sentence') {
+  async createFlashcard(categoryId, front, back, backFormat = 'sentence', codeLanguage) {
     // Try backend first
     try {
       const response = await fetch('/api/flashcards', {
@@ -135,6 +135,7 @@ class FlashcardAPI {
           front,
           back,
           back_format: backFormat,
+          code_language: codeLanguage,
         }),
       });
       if (response.ok) {
@@ -152,7 +153,7 @@ class FlashcardAPI {
     const { flashcards } = await loadData();
     const nextId = (flashcards.reduce((m, f) => Math.max(m, Number(f.id) || 0), 0) || 0) + 1;
     const now = new Date().toISOString();
-    const newCard = { id: nextId, category_id: Number(categoryId), front, back, back_format: backFormat, created_at: now, updated_at: now };
+    const newCard = { id: nextId, category_id: Number(categoryId), front, back, back_format: backFormat, code_language: codeLanguage, created_at: now, updated_at: now };
     overlay.flashcards = (overlay.flashcards || []).concat(newCard);
     localStorage.setItem(overlayKey, JSON.stringify(overlay));
 
@@ -165,12 +166,12 @@ class FlashcardAPI {
     return newCard;
   }
 
-  async updateFlashcard(id, front, back, backFormat = 'sentence') {
+  async updateFlashcard(id, front, back, backFormat = 'sentence', codeLanguage) {
     try {
       const response = await fetch(`/api/flashcards/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ front, back, back_format: backFormat }),
+        body: JSON.stringify({ front, back, back_format: backFormat, code_language: codeLanguage }),
       });
       if (response.ok) {
         cachePromise = null;

@@ -136,18 +136,18 @@ app.get('/api/flashcards/:id', async (req, res) => {
 // Create new flashcard
 app.post('/api/flashcards', async (req, res) => {
   try {
-    const { category_id, front, back, back_format = 'sentence' } = req.body;
+    const { category_id, front, back, back_format = 'sentence', code_language } = req.body;
     if (!category_id || !front || !back) {
       return res.status(400).json({ 
         error: 'Category ID, front, and back are required' 
       });
     }
-    if (!['sentence', 'list'].includes(back_format)) {
+    if (!['sentence', 'list', 'code'].includes(back_format)) {
       return res.status(400).json({ 
-        error: 'back_format must be either "sentence" or "list"' 
+        error: 'back_format must be one of "sentence", "list", "code"' 
       });
     }
-    const newFlashcard = await statements.insertFlashcard(category_id, front, back, back_format);
+    const newFlashcard = await statements.insertFlashcard(category_id, front, back, back_format, code_language);
     res.status(201).json(newFlashcard);
   } catch (error) {
     if (error.code === '23503' || error.code === 'FOREIGN_KEY') {
@@ -160,16 +160,16 @@ app.post('/api/flashcards', async (req, res) => {
 // Update flashcard
 app.put('/api/flashcards/:id', async (req, res) => {
   try {
-    const { front, back, back_format = 'sentence' } = req.body;
+    const { front, back, back_format = 'sentence', code_language } = req.body;
     if (!front || !back) {
       return res.status(400).json({ error: 'Front and back are required' });
     }
-    if (!['sentence', 'list'].includes(back_format)) {
+    if (!['sentence', 'list', 'code'].includes(back_format)) {
       return res.status(400).json({ 
-        error: 'back_format must be either "sentence" or "list"' 
+        error: 'back_format must be one of "sentence", "list", "code"' 
       });
     }
-    const updatedFlashcard = await statements.updateFlashcard(req.params.id, front, back, back_format);
+    const updatedFlashcard = await statements.updateFlashcard(req.params.id, front, back, back_format, code_language);
     if (!updatedFlashcard) {
       return res.status(404).json({ error: 'Flashcard not found' });
     }
