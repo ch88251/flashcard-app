@@ -1,0 +1,228 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "Core Python",
+      "created_at": "2025-11-24 04:36:45",
+      "updated_at": "2025-11-24 04:36:45"
+    }
+  ],
+  "flashcards": [
+    {
+      "id": 1,
+      "category_id": 1,
+      "front": "How would you use a stack in python?",
+      "back": "Use the collections.deque data structre",
+      "back_format": "sentence",
+      "created_at": "2025-12-05 05:29:33",
+      "updated_at": "2025-12-05 05:29:33"
+    },
+    {
+      "id": 2,
+      "category_id": 1,
+      "front": "What is the difference between is and == in Python?",
+      "back": "== checks for value equality (via __eq__).\nis checks for object identity (same memory reference).\nExample: small integers and interned strings may make is appear to work, but it’s an implementation detail.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 02:56:03",
+      "updated_at": "2025-12-06 02:56:03"
+    },
+    {
+      "id": 3,
+      "category_id": 1,
+      "front": "What is a Python descriptor?",
+      "back": "A descriptor is an object that defines any of the methods: __get__, __set__, or __delete__.\nDescriptors control attribute access and power features like @property, methods, and staticmethod.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 02:58:09",
+      "updated_at": "2025-12-06 02:58:09"
+    },
+    {
+      "id": 4,
+      "category_id": 1,
+      "front": "What is the data model (a.k.a. \"dunder methods\")?",
+      "back": "The data model is Python’s protocol system where behavior is defined by implementing special (\"dunder\") methods such as __len__, __iter__, __add__, __enter__, etc.\nIt allows custom classes to behave like built-in types.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 02:59:08",
+      "updated_at": "2025-12-06 02:59:08"
+    },
+    {
+      "id": 5,
+      "category_id": 1,
+      "front": "What is the difference between an iterator and an iterable?",
+      "back": "An iterable implements __iter__ and returns an iterator.\nAn iterator implements both __iter__ and __next__, maintaining internal state for iteration.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:00:18",
+      "updated_at": "2025-12-06 03:00:18"
+    },
+    {
+      "id": 6,
+      "category_id": 1,
+      "front": "What makes a generator different from a normal function?",
+      "back": "A generator contains at least one yield.\nCalling it returns a generator object that pauses execution at each yield, resuming later.\nGenerators create lazy sequences with minimal memory usage.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:01:09",
+      "updated_at": "2025-12-06 03:01:09"
+    },
+    {
+      "id": 7,
+      "category_id": 1,
+      "front": "What is a coroutine in Python?",
+      "back": "A coroutine is a function defined with async def that can be suspended and resumed.\nThey use await and run on an event loop (e.g., asyncio) to support concurrent I/O operations.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:01:57",
+      "updated_at": "2025-12-06 03:01:57"
+    },
+    {
+      "id": 8,
+      "category_id": 1,
+      "front": "What is a closure?",
+      "back": "A closure is a function that remembers variables from its enclosing scope even after that scope has finished executing.\nThe captured variables appear in the function’s __closure__ attribute.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:02:59",
+      "updated_at": "2025-12-06 03:02:59"
+    },
+    {
+      "id": 9,
+      "category_id": 1,
+      "front": "How does functools.partial work?",
+      "back": "partial creates a new function with some arguments pre-filled.\nUseful for functional programming, callbacks, and currying.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:03:36",
+      "updated_at": "2025-12-06 03:03:36"
+    },
+    {
+      "id": 10,
+      "category_id": 1,
+      "front": "What is a decorator in Python?",
+      "back": "A decorator is a callable that takes another function and returns a modified function.\nIt’s syntactic sugar for func = decorator(func) and is commonly used for logging, timing, access control, caching, etc.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:04:35",
+      "updated_at": "2025-12-06 03:04:35"
+    },
+    {
+      "id": 11,
+      "category_id": 1,
+      "front": "What problem does functools.wraps solve?",
+      "back": "wraps copies metadata (__name__, __doc__, etc.) from the original function to the wrapper, preserving introspection.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:05:15",
+      "updated_at": "2025-12-06 03:05:15"
+    },
+    {
+      "id": 12,
+      "category_id": 1,
+      "front": "What is a metaclass?",
+      "back": "A metaclass defines how classes themselves behave.\nThe default metaclass is type.\nYou can customize class creation by defining __new__ or __init__ in a metaclass.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:06:03",
+      "updated_at": "2025-12-06 03:06:03"
+    },
+    {
+      "id": 13,
+      "category_id": 1,
+      "front": "How does Python’s garbage collection work?",
+      "back": "Python uses:\n\nReference counting (primary mechanism)\n\nCycle detector (secondary, finds circular references)\nObjects are freed when reference count reaches zero unless part of a cycle.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:07:13",
+      "updated_at": "2025-12-06 03:07:13"
+    },
+    {
+      "id": 14,
+      "category_id": 1,
+      "front": "What is the GIL and how does it affect performance?",
+      "back": "The Global Interpreter Lock ensures only one Python thread executes bytecode at a time.\nThis limits CPU-bound multithreading but does not affect I/O-bound tasks.\nWorkarounds: multiprocessing, C extensions, asyncio.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:08:05",
+      "updated_at": "2025-12-06 03:08:05"
+    },
+    {
+      "id": 15,
+      "category_id": 1,
+      "front": "What is the main difference between threading and asyncio?",
+      "back": "Threading uses preemptive OS scheduling; threads run concurrently but may block.\nAsyncio uses cooperative multitasking; tasks yield control explicitly via await.\nBest for I/O-bound workloads.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:08:54",
+      "updated_at": "2025-12-06 03:08:54"
+    },
+    {
+      "id": 16,
+      "category_id": 1,
+      "front": "What is an event loop?",
+      "back": "The event loop runs asynchronous tasks, schedules callbacks, and handles I/O events.\nOnly one event loop runs per thread.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:09:40",
+      "updated_at": "2025-12-06 03:09:40"
+    },
+    {
+      "id": 17,
+      "category_id": 1,
+      "front": "How does a context manager work?",
+      "back": "Objects implementing:\n\n__enter__\n\n__exit__(exc_type, exc, tb)\n\nare context managers.\nUsed with with to ensure setup/teardown (e.g., files, locks, transactions).",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:10:44",
+      "updated_at": "2025-12-06 03:10:44"
+    },
+    {
+      "id": 18,
+      "category_id": 1,
+      "front": "What is contextlib.contextmanager?",
+      "back": "A decorator that turns a generator into a context manager.\nThe code before the yield runs on __enter__; after the yield runs on __exit__.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:11:37",
+      "updated_at": "2025-12-06 03:11:37"
+    },
+    {
+      "id": 19,
+      "category_id": 1,
+      "front": "What is a Protocol in Python typing?",
+      "back": "A protocol defines a structural type:\n\"If it looks like a duck and quacks like a duck…\"\nObjects match a protocol if they implement required methods — no inheritance needed.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:12:25",
+      "updated_at": "2025-12-06 03:12:25"
+    },
+    {
+      "id": 20,
+      "category_id": 1,
+      "front": "What is the difference between typing.List and list[T]?",
+      "back": "In modern Python, built-in generics (list[int]) are preferred.\ntyping.List[int] is the older syntax kept for backward compatibility.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:13:19",
+      "updated_at": "2025-12-06 03:13:19"
+    },
+    {
+      "id": 21,
+      "category_id": 1,
+      "front": "What is the purpose of __all__ in a module?",
+      "back": "__all__ defines the public API for from module import *.\nIt controls which names are exported automatically.",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:13:58",
+      "updated_at": "2025-12-06 03:13:58"
+    },
+    {
+      "id": 22,
+      "category_id": 1,
+      "front": "What is the difference between absolute and relative imports?",
+      "back": "Absolute imports reference the full package path.\nRelative imports use . notation to navigate the package structure (e.g., .utils).",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:14:41",
+      "updated_at": "2025-12-06 03:14:41"
+    },
+    {
+      "id": 23,
+      "category_id": 1,
+      "front": "What does monkeypatching mean in Python testing?",
+      "back": "Temporarily modifying modules, objects, or environment variables during a test (commonly with pytest’s monkeypatch fixture).",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:15:17",
+      "updated_at": "2025-12-06 03:15:17"
+    },
+    {
+      "id": 24,
+      "category_id": 1,
+      "front": "What is the purpose of __future__ imports?",
+      "back": "They enable future Python language features in current versions (e.g., from __future__ import annotations).",
+      "back_format": "sentence",
+      "created_at": "2025-12-06 03:15:58",
+      "updated_at": "2025-12-06 03:15:58"
+    }
+  ]
+}
