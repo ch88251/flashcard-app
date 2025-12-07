@@ -132,12 +132,14 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
                   Back to Flashcards
                 </button>
               )}
-              <button
-                onClick={async () => { try { await flashcardAPI.logout(); } catch(_){} if (onBack) onBack(); }}
-                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 font-medium"
-              >
-                Sign Out
-              </button>
+              {!(typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname.startsWith('127.')) ) && (
+                <button
+                  onClick={async () => { try { await flashcardAPI.logout(); } catch(_){} if (onBack) onBack(); }}
+                  className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200 font-medium"
+                >
+                  Sign Out
+                </button>
+              )}
             </div>
           </div>
         </div>
