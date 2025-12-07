@@ -289,3 +289,17 @@ export async function login(username, password) {
 
 // Assign for backward compatibility with components calling flashcardAPI.login
 flashcardAPI.login = login;
+
+export async function logout() {
+  const response = await fetch('/api/logout', {
+    method: 'POST'
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({}));
+    throw new Error(err.error || 'Logout failed');
+  }
+  cachePromise = null;
+  return true;
+}
+
+flashcardAPI.logout = logout;
