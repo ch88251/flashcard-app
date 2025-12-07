@@ -16,6 +16,12 @@ export default async function handler(req, res) {
         return res.status(200).json(flashcards);
       }
       if (method === 'POST') {
+        const isProd = process.env.NODE_ENV === 'production';
+        const host = req.headers?.host || '';
+        const isLocal = host.includes('localhost') || host.startsWith('127.');
+        if (isProd && !isLocal) {
+          return res.status(405).json({ error: 'Mutations are disabled on production' });
+        }
         const auth = requireAuth(req, res);
         if (!auth) return;
         const body = (req.body && typeof req.body === 'object') ? req.body : await readJsonBody(req);
@@ -49,6 +55,12 @@ export default async function handler(req, res) {
         return res.status(200).json(card);
       }
       if (method === 'PUT') {
+        const isProd = process.env.NODE_ENV === 'production';
+        const host = req.headers?.host || '';
+        const isLocal = host.includes('localhost') || host.startsWith('127.');
+        if (isProd && !isLocal) {
+          return res.status(405).json({ error: 'Mutations are disabled on production' });
+        }
         const auth = requireAuth(req, res);
         if (!auth) return;
         const body = (req.body && typeof req.body === 'object') ? req.body : await readJsonBody(req);
@@ -65,6 +77,12 @@ export default async function handler(req, res) {
         return res.status(200).json(updated);
       }
       if (method === 'DELETE') {
+        const isProd = process.env.NODE_ENV === 'production';
+        const host = req.headers?.host || '';
+        const isLocal = host.includes('localhost') || host.startsWith('127.');
+        if (isProd && !isLocal) {
+          return res.status(405).json({ error: 'Mutations are disabled on production' });
+        }
         const auth = requireAuth(req, res);
         if (!auth) return;
         const deleted = await statements.deleteFlashcard(id);

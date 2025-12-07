@@ -7,6 +7,10 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
   const [flashcards, setFlashcards] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const isProd = import.meta.env.MODE === 'production';
+  const host = typeof window !== 'undefined' ? window.location.hostname : '';
+  const isLocal = host.includes('localhost') || host.startsWith('127.');
+  const isReadOnly = isProd && !isLocal;
   
   // Form states
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -53,6 +57,7 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
   const handleCreateCategory = async (e) => {
     e.preventDefault();
     if (!newCategoryName.trim()) return;
+    if (isReadOnly) { setError('Read-only on production. Edit locally, then redeploy.'); return; }
 
     try {
       await flashcardAPI.createCategory(newCategoryName);
@@ -67,6 +72,7 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
   const handleCreateFlashcard = async (e) => {
     e.preventDefault();
     if (!selectedCategoryId || !newFlashcard.front.trim() || !newFlashcard.back.trim()) return;
+    if (isReadOnly) { setError('Read-only on production. Edit locally, then redeploy.'); return; }
 
     try {
       await flashcardAPI.createFlashcard(selectedCategoryId, newFlashcard.front, newFlashcard.back, newFlashcard.backFormat);
@@ -80,6 +86,7 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
   const handleUpdateFlashcard = async (e) => {
     e.preventDefault();
     if (!editingCard) return;
+    if (isReadOnly) { setError('Read-only on production. Edit locally, then redeploy.'); return; }
 
     try {
       await flashcardAPI.updateFlashcard(editingCard.id, editingCard.front, editingCard.back, editingCard.back_format);
@@ -92,6 +99,7 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
 
   const handleDeleteFlashcard = async (id) => {
     if (!confirm('Are you sure you want to delete this flashcard?')) return;
+    if (isReadOnly) { setError('Read-only on production. Edit locally, then redeploy.'); return; }
 
     try {
       await flashcardAPI.deleteFlashcard(id);
@@ -103,6 +111,7 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
 
   const handleDeleteCategory = async (id) => {
     if (!confirm('Are you sure you want to delete this category and all its flashcards?')) return;
+    if (isReadOnly) { setError('Read-only on production. Edit locally, then redeploy.'); return; }
 
     try {
       await flashcardAPI.deleteCategory(id);
@@ -147,6 +156,11 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto p-6">
+        {isProd && !isLocal && (
+          <div className="mb-4 rounded border border-yellow-300 bg-yellow-50 text-yellow-900 p-3 text-sm">
+            Read-only mode on production; make changes locally and redeploy.
+          </div>
+        )}
         
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -177,7 +191,9 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
                 />
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700"
+                  disabled={isReadOnly}
+                  title={isReadOnly ? 'Read-only on production' : ''}
+                  className={`px-4 py-2 rounded-md text-white ${isReadOnly ? 'bg-gray-300 cursor-not-allowed' : 'bg-indigo-600 hover:bg-indigo-700'}`}
                 >
                   Add
                 </button>
@@ -203,7 +219,9 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
                   </span>
                   <button
                     onClick={() => handleDeleteCategory(category.id)}
-                    className="text-red-600 hover:text-red-800 px-2"
+                    disabled={isReadOnly}
+                    title={isReadOnly ? 'Read-only on production' : ''}
+                    className={`px-2 ${isReadOnly ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:text-red-800'}`}
                   >
                     Delete
                   </button>
@@ -279,7 +297,9 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
                   
                   <button
                     type="submit"
-                    className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700"
+                    disabled={isReadOnly}
+                    title={isReadOnly ? 'Read-only on production' : ''}
+                    className={`w-full px-4 py-2 rounded-md text-white ${isReadOnly ? 'bg-gray-300 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'}`}
                   >
                     Add Flashcard
                   </button>
@@ -342,7 +362,9 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
                             <div className="flex gap-2">
                               <button
                                 type="submit"
-                                className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                                disabled={isReadOnly}
+                                title={isReadOnly ? 'Read-only on production' : ''}
+                                className={`px-3 py-1 rounded text-sm text-white ${isReadOnly ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
                               >
                                 Save
                               </button>
@@ -385,13 +407,17 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
                             <div className="flex gap-2">
                               <button
                                 onClick={() => setEditingCard(card)}
-                                className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
+                                disabled={isReadOnly}
+                                title={isReadOnly ? 'Read-only on production' : ''}
+                                className={`px-3 py-1 rounded text-sm text-white ${isReadOnly ? 'bg-gray-300 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
                               >
                                 Edit
                               </button>
                               <button
                                 onClick={() => handleDeleteFlashcard(card.id)}
-                                className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                                disabled={isReadOnly}
+                                title={isReadOnly ? 'Read-only on production' : ''}
+                                className={`px-3 py-1 rounded text-sm text-white ${isReadOnly ? 'bg-gray-300 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'}`}
                               >
                                 Delete
                               </button>

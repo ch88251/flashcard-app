@@ -5,6 +5,12 @@
       "name": "Core Python",
       "created_at": "2025-11-24 04:36:45",
       "updated_at": "2025-11-24 04:36:45"
+    },
+    {
+      "id": 2,
+      "name": "AWS",
+      "created_at": "2025-12-07 16:45:21",
+      "updated_at": "2025-12-07 16:45:21"
     }
   ],
   "flashcards": [
