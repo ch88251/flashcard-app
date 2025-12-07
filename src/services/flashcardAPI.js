@@ -101,6 +101,7 @@ class FlashcardAPI {
         cachePromise = null;
         return response.json();
       }
+      if (response.status === 401) throw new Error('Unauthorized');
     } catch (_) {
       // Ignore and use fallback
     }
@@ -140,6 +141,7 @@ class FlashcardAPI {
         cachePromise = null;
         return response.json();
       }
+      if (response.status === 401) throw new Error('Unauthorized');
     } catch (_) {
       // ignore and use fallback
     }
@@ -164,6 +166,18 @@ class FlashcardAPI {
   }
 
   async updateFlashcard(id, front, back, backFormat = 'sentence') {
+    try {
+      const response = await fetch(`/api/flashcards/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ front, back, back_format: backFormat }),
+      });
+      if (response.ok) {
+        cachePromise = null;
+        return response.json();
+      }
+      if (response.status === 401) throw new Error('Unauthorized');
+    } catch (_) {}
     throw new Error('updateFlashcard is not supported in static JSON mode');
   }
 
@@ -175,6 +189,7 @@ class FlashcardAPI {
         cachePromise = null;
         return;
       }
+      if (response.status === 401) throw new Error('Unauthorized');
     } catch (_) {}
 
     // Fallback: remove from localStorage overlay
@@ -207,7 +222,21 @@ class FlashcardAPI {
         cachePromise = null;
         return;
       }
+      if (response.status === 401) throw new Error('Unauthorized');
     } catch (_) {}
+  async login(username, password) {
+    const response = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error || 'Login failed');
+    }
+    cachePromise = null;
+    return true;
+  }
 
     // Fallback: remove from localStorage overlay and filter reads
     const overlayKey = 'flashcards_overlay';

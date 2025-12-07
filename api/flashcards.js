@@ -1,4 +1,5 @@
 import { statements } from '../server/database.js';
+import { requireAuth } from './_auth.js';
 
 export default async function handler(req, res) {
   try {
@@ -14,6 +15,8 @@ export default async function handler(req, res) {
         return res.status(200).json(flashcards);
       }
       if (method === 'POST') {
+        const auth = requireAuth(req, res);
+        if (!auth) return;
         const { category_id, front, back, back_format = 'sentence' } = req.body || {};
         if (!category_id || !front || !back) {
           return res.status(400).json({ error: 'Category ID, front, and back are required' });
@@ -43,6 +46,8 @@ export default async function handler(req, res) {
         return res.status(200).json(card);
       }
       if (method === 'PUT') {
+        const auth = requireAuth(req, res);
+        if (!auth) return;
         const { front, back, back_format = 'sentence' } = req.body || {};
         if (!front || !back) {
           return res.status(400).json({ error: 'Front and back are required' });
@@ -55,6 +60,8 @@ export default async function handler(req, res) {
         return res.status(200).json(updated);
       }
       if (method === 'DELETE') {
+        const auth = requireAuth(req, res);
+        if (!auth) return;
         const deleted = await statements.deleteFlashcard(id);
         if (!deleted) return res.status(404).json({ error: 'Flashcard not found' });
         return res.status(204).send();

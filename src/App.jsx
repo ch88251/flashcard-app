@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Flashcard from "./Flashcard";
 import DomainSelect from "./DomainSelect";
 import AdminPanel from "./AdminPanel";
+import Login from "./Login";
 import { flashcardAPI } from "./services/flashcardAPI";
 
 function App() {
@@ -12,7 +13,7 @@ function App() {
   const [flipped, setFlipped] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [currentView, setCurrentView] = useState('flashcards'); // 'flashcards' or 'admin'
+  const [currentView, setCurrentView] = useState('flashcards'); // 'flashcards' | 'login' | 'admin'
 
   // Load categories on initial render
   useEffect(() => {
@@ -89,6 +90,10 @@ function App() {
     );
   }
 
+  if (currentView === 'login') {
+    return <Login onSuccess={() => setCurrentView('admin')} onCancel={() => setCurrentView('flashcards')} />;
+  }
+
   if (currentView === 'admin') {
     return (
       <AdminPanel 
@@ -108,7 +113,7 @@ function App() {
               Flashcards
             </h1>
             <button
-              onClick={() => setCurrentView('admin')}
+              onClick={() => setCurrentView('login')}
               className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200 font-medium"
             >
               Admin Panel

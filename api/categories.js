@@ -1,4 +1,5 @@
 import { statements } from '../server/database.js';
+import { requireAuth } from './_auth.js';
 
 export default async function handler(req, res) {
   try {
@@ -14,6 +15,8 @@ export default async function handler(req, res) {
         return res.status(200).json(categories);
       }
       if (method === 'POST') {
+        const auth = requireAuth(req, res);
+        if (!auth) return;
         const { name } = req.body || {};
         if (!name) return res.status(400).json({ error: 'Category name is required' });
         try {
@@ -38,6 +41,8 @@ export default async function handler(req, res) {
         return res.status(200).json(cat);
       }
       if (method === 'PUT') {
+        const auth = requireAuth(req, res);
+        if (!auth) return;
         const { name } = req.body || {};
         if (!name) return res.status(400).json({ error: 'Category name is required' });
         try {
@@ -52,6 +57,8 @@ export default async function handler(req, res) {
         }
       }
       if (method === 'DELETE') {
+        const auth = requireAuth(req, res);
+        if (!auth) return;
         const deleted = await statements.deleteCategory(id);
         if (!deleted) return res.status(404).json({ error: 'Category not found' });
         return res.status(204).send();
