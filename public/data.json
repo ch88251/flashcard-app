@@ -29,6 +29,12 @@
       "name": "Docker",
       "created_at": "2025-12-07 17:26:48",
       "updated_at": "2025-12-07 17:26:48"
+    },
+    {
+      "id": 6,
+      "name": "Metrics & Monitoring",
+      "created_at": "2025-12-07 17:30:55",
+      "updated_at": "2025-12-07 17:30:55"
     }
   ],
   "flashcards": [
@@ -544,6 +550,96 @@
       "back_format": "sentence",
       "created_at": "2025-12-07 22:05:00",
       "updated_at": "2025-12-07 22:05:00"
+    },
+    {
+      "id": 60,
+      "category_id": 3,
+      "front": "You want to run a containerized application on AWS using Kubernetes, but you don't want to manage the Kubernetes control plane yourself. Which AWS service should you choose?",
+      "back": "Amazon EKS",
+      "back_format": "sentence",
+      "created_at": "2025-12-07 22:09:00",
+      "updated_at": "2025-12-07 22:09:00"
+    },
+    {
+      "id": 61,
+      "category_id": 3,
+      "front": "You’re building a serverless application that uses AWS Lambda, and you want to securely store and access secrets like API keys and database credentials. Which AWS service should you use?",
+      "back": "AWS Secrets Manager",
+      "back_format": "sentence",
+      "created_at": "2025-12-07 22:10:00",
+      "updated_at": "2025-12-07 22:10:00"
+    },
+    {
+      "id": 62,
+      "category_id": 3,
+      "front": "You're using AWS Lambda to process messages from an Amazon SQS queue. What happens if the Lambda function fails to process a message after the maximum number of retries?",
+      "back": "The message is sent to the dead-letter queue (if configured).",
+      "back_format": "sentence",
+      "created_at": "2025-12-07 22:11:00",
+      "updated_at": "2025-12-07 22:11:00"
+    },
+    {
+      "id": 63,
+      "category_id": 3,
+      "front": "Use cases for EFS",
+      "back": "Content management\n\nWeb serving\n\nData sharing\n\nWordpress",
+      "back_format": "list",
+      "created_at": "2025-12-07 22:12:00",
+      "updated_at": "2025-12-07 22:12:00"
+    },
+    {
+      "id": 64,
+      "category_id": 6,
+      "front": "Observability",
+      "back": "Observing the state of a system through output measurements. Outputs can be metrics, logs and traces. Together these are referred to as telemetry signals.",
+      "back_format": "sentence",
+      "created_at": "2025-12-07 23:11:00",
+      "updated_at": "2025-12-07 23:11:00"
+    },
+    {
+      "id": 65,
+      "category_id": 6,
+      "front": "MTTD",
+      "back": "Mean Time To Detect - Time between when a failure occurred to the time it is detected.",
+      "back_format": "sentence",
+      "created_at": "2025-12-07 23:12:00",
+      "updated_at": "2025-12-07 23:12:00"
+    },
+    {
+      "id": 66,
+      "category_id": 6,
+      "front": "MTTR",
+      "back": "Mean Time To Repair - Time between when a failure is detected to the time it is repaired.",
+      "back_format": "sentence",
+      "created_at": "2025-12-07 23:13:00",
+      "updated_at": "2025-12-07 23:13:00"
+    },
+    {
+      "id": 67,
+      "category_id": 6,
+      "front": "MTBF",
+      "back": "Mean Time Between Failures - Time between each failure.",
+      "back_format": "sentence",
+      "created_at": "2025-12-07 23:14:00",
+      "updated_at": "2025-12-07 23:14:00"
+    },
+    {
+      "id": 68,
+      "category_id": 6,
+      "front": "MTTF",
+      "back": "Mean Time To Failure - Average amount of time a non-repairable component or system operates before it fails. This is the combined time of MTTD, MTTR and MTBF",
+      "back_format": "sentence",
+      "created_at": "2025-12-07 23:15:00",
+      "updated_at": "2025-12-07 23:15:00"
+    },
+    {
+      "id": 69,
+      "category_id": 6,
+      "front": "3 main components of an observability solution",
+      "back": "Collect telemetry data\n\nBackend server that processes the data\n\nWay to transmit the data to the backend",
+      "back_format": "list",
+      "created_at": "2025-12-07 23:16:00",
+      "updated_at": "2025-12-07 23:16:00"
     }
   ]
 }
