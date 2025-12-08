@@ -499,6 +499,51 @@
       "back_format": "sentence",
       "created_at": "2025-12-07 21:00:01",
       "updated_at": "2025-12-07 21:00:01"
+    },
+    {
+      "id": 55,
+      "category_id": 3,
+      "front": "Explain what AWS Fargate is.",
+      "back": "Fargate is a serverless compute engine for containers — it handles provisioning and scaling the infrastructure for you, so you can focus on just defining and running your containers.",
+      "back_format": "sentence",
+      "created_at": "2025-12-07 22:00:01",
+      "updated_at": "2025-12-07 22:00:01"
+    },
+    {
+      "id": 56,
+      "category_id": 3,
+      "front": "Examples of things that can trigger a lambda function.",
+      "back": "S3 bucket can trigger lambda when objects are created or deleted.\n\nAmazon API Gateway can trigger a lambda to build a REST API.",
+      "back_format": "list",
+      "created_at": "2025-12-07 22:02:09",
+      "updated_at": "2025-12-07 22:02:09"
+    },
+    {
+      "id": 57,
+      "category_id": 3,
+      "front": "What type of load balancer would you use to support path-based routing or host-based routing?",
+      "back": "Application load balancer",
+      "back_format": "sentence",
+      "created_at": "2025-12-07 22:03:00",
+      "updated_at": "2025-12-07 22:03:00"
+    },
+    {
+      "id": 58,
+      "category_id": 3,
+      "front": "You’ve developed a serverless application using AWS Lambda and want to keep track of function invocations, execution duration, and any errors. Which AWS service automatically provides these monitoring metrics for Lambda functions?",
+      "back": "Amazon Cloud Watch",
+      "back_format": "sentence",
+      "created_at": "2025-12-07 22:04:00",
+      "updated_at": "2025-12-07 22:04:00"
+    },
+    {
+      "id": 59,
+      "category_id": 3,
+      "front": "You're designing a microservices application using AWS Lambda and want the services to communicate asynchronously. Which AWS service is the best fit for handling this communication?",
+      "back": "Amazon SQS",
+      "back_format": "sentence",
+      "created_at": "2025-12-07 22:05:00",
+      "updated_at": "2025-12-07 22:05:00"
     }
   ]
 }
