@@ -1,177 +1,161 @@
 import dotenv from 'dotenv';
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import Database from 'better-sqlite3';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 dotenv.config();
 
-// Equivalent of __dirname in ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// repo root = one level up from this file
 const repoRoot = path.resolve(__dirname, '..');
-const publicDataPath = path.join(repoRoot, 'public', 'data.json');
+const dbPath = path.join(repoRoot, 'server', 'flashcards.sqlite');
 
-async function readData() {
-  const raw = fs.readFileSync(publicDataPath, 'utf8');
-  return JSON.parse(raw);
-}
+const db = new Database(dbPath);
+db.pragma('journal_mode = WAL');
 
-async function writeData(model) {
-  // In production on Vercel, filesystem is immutable; skip writes
-  const isProd = process.env.NODE_ENV === 'production';
-  if (isProd) {
-    return;
-  }
+db.exec(`
+  CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
 
-  try {
-    fs.writeFileSync(publicDataPath, JSON.stringify(model, null, 2), 'utf8');
-  } catch (e) {
-    console.error('Failed to write public/data.json at', publicDataPath, e);
-    throw e;
-  }
-}
+  CREATE TABLE IF NOT EXISTS flashcards (
+    id INTEGER PRIMARY KEY,
+    category_id INTEGER NOT NULL,
+    front TEXT NOT NULL,
+    back TEXT NOT NULL,
+    back_format TEXT DEFAULT 'sentence' CHECK (back_format IN ('sentence', 'list', 'code')),
+    code_language TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+  );
+`);
 
-function nextId(items) {
-  return (items.length ? Math.max(...items.map(i => Number(i.id) || 0)) : 0) + 1;
+function nowTS() {
+  return new Date().toISOString().replace('T', ' ').slice(0, 19);
 }
 
 const statements = {
 
   // Categories
   async insertCategory(name) {
-    const model = await readData();
-    if (model.categories.some(c => c.name === name)) {
+    try {
+      const ts = nowTS();
+      const stmt = db.prepare('INSERT INTO categories (name, created_at, updated_at) VALUES (?, ?, ?)');
+      const info = stmt.run(name, ts, ts);
+      return { id: info.lastInsertRowid, name, created_at: ts, updated_at: ts };
+    } catch (err) {
+      if (String(err.message).includes('UNIQUE')) {
       const err = new Error('Category already exists');
       err.code = 'DUPLICATE';
       throw err;
+      }
+      throw err;
     }
-    const id = nextId(model.categories);
-    const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    const newCategory = { id, name, created_at: now, updated_at: now };
-    model.categories.push(newCategory);
-    await writeData(model);
-    return newCategory;
   },
   async getAllCategories() {
-    const model = await readData();
-    return model.categories.sort((a, b) => a.name.localeCompare(b.name));
+    const rows = db.prepare('SELECT id, name, created_at, updated_at FROM categories ORDER BY name').all();
+    return rows;
   },
   async getCategoryById(id) {
-    const model = await readData();
-    return model.categories.find(c => String(c.id) === String(id)) || null;
+    return db.prepare('SELECT id, name, created_at, updated_at FROM categories WHERE id = ?').get(id) || null;
   },
   async getCategoryByName(name) {
-    const model = await readData();
-    return model.categories.find(c => c.name === name) || null;
+    return db.prepare('SELECT id, name, created_at, updated_at FROM categories WHERE name = ?').get(name) || null;
   },
   async updateCategory(id, name) {
-    const model = await readData();
-    const cat = model.categories.find(c => String(c.id) === String(id));
-    if (!cat) return null;
-    if (model.categories.some(c => c.name === name && String(c.id) !== String(id))) {
+    const existing = db.prepare('SELECT id FROM categories WHERE name = ? AND id <> ?').get(name, id);
+    if (existing) {
       const err = new Error('Category name already exists');
       err.code = 'DUPLICATE';
       throw err;
     }
-    cat.name = name;
-    cat.updated_at = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    await writeData(model);
-    return cat;
+    const ts = nowTS();
+    const info = db.prepare('UPDATE categories SET name = ?, updated_at = ? WHERE id = ?').run(name, ts, id);
+    if (info.changes === 0) return null;
+    return db.prepare('SELECT id, name, created_at, updated_at FROM categories WHERE id = ?').get(id);
   },
   async deleteCategory(id) {
-    const model = await readData();
-    const before = model.categories.length;
-    model.categories = model.categories.filter(c => String(c.id) !== String(id));
-    // Cascade delete flashcards
-    model.flashcards = model.flashcards.filter(f => String(f.category_id) !== String(id));
-    const changed = before !== model.categories.length;
-    if (changed) await writeData(model);
-    return changed;
+    const info = db.prepare('DELETE FROM categories WHERE id = ?').run(id);
+    return info.changes > 0;
   },
 
   // Flashcards
   async insertFlashcard(category_id, front, back, back_format, code_language) {
-    const model = await readData();
-    const cat = model.categories.find(c => String(c.id) === String(category_id));
-    if (!cat) {
-      const err = new Error('Invalid category ID');
-      err.code = 'FOREIGN_KEY';
+    const ts = nowTS();
+    try {
+      const stmt = db.prepare(`
+        INSERT INTO flashcards (category_id, front, back, back_format, code_language, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+      const info = stmt.run(Number(category_id), front, back, back_format, code_language || null, ts, ts);
+      const row = db.prepare('SELECT id, category_id, front, back, back_format, code_language, created_at, updated_at FROM flashcards WHERE id = ?').get(info.lastInsertRowid);
+      return row;
+    } catch (err) {
+      if (String(err.message).includes('FOREIGN KEY')) {
+        const e = new Error('Invalid category ID');
+        e.code = 'FOREIGN_KEY';
+        throw e;
+      }
       throw err;
     }
-    const id = nextId(model.flashcards);
-    const now = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    const newCard = { id, category_id: Number(category_id), front, back, back_format, code_language, created_at: now, updated_at: now };
-    model.flashcards.push(newCard);
-    await writeData(model);
-    return newCard;
   },
   async getAllFlashcards() {
-    const model = await readData();
-    // attach category_name
-    return model.flashcards
-      .map(f => ({
-        ...f,
-        category_name: (model.categories.find(c => c.id === f.category_id) || {}).name
-      }))
-      .sort((a, b) => {
-        const an = a.category_name || '';
-        const bn = b.category_name || '';
-        return an.localeCompare(bn) || a.id - b.id;
-      });
+    const rows = db.prepare(`
+      SELECT f.id, f.category_id, f.front, f.back, f.back_format, f.code_language, f.created_at, f.updated_at,
+             c.name AS category_name
+      FROM flashcards f
+      LEFT JOIN categories c ON c.id = f.category_id
+      ORDER BY c.name ASC, f.id ASC
+    `).all();
+    return rows;
   },
   async getFlashcardsByCategory(categoryId) {
-    const model = await readData();
-    return model.flashcards
-      .filter(f => String(f.category_id) === String(categoryId))
-      .map(f => ({
-        ...f,
-        category_name: (model.categories.find(c => c.id === f.category_id) || {}).name
-      }))
-      .sort((a, b) => a.id - b.id);
+    const rows = db.prepare(`
+      SELECT f.id, f.category_id, f.front, f.back, f.back_format, f.code_language, f.created_at, f.updated_at,
+             c.name AS category_name
+      FROM flashcards f
+      LEFT JOIN categories c ON c.id = f.category_id
+      WHERE f.category_id = ?
+      ORDER BY f.id ASC
+    `).all(categoryId);
+    return rows;
   },
   async getFlashcardsByCategoryName(categoryName) {
-    const model = await readData();
-    const cat = model.categories.find(c => c.name === categoryName);
+    const cat = db.prepare('SELECT id FROM categories WHERE name = ?').get(categoryName);
     if (!cat) return [];
     return statements.getFlashcardsByCategory(cat.id);
   },
   async getFlashcardById(id) {
-    const model = await readData();
-    const f = model.flashcards.find(fc => String(fc.id) === String(id));
-    if (!f) return null;
-    const category_name = (model.categories.find(c => c.id === f.category_id) || {}).name;
-    return { ...f, category_name };
+    return db.prepare(`
+      SELECT f.id, f.category_id, f.front, f.back, f.back_format, f.code_language, f.created_at, f.updated_at,
+             c.name AS category_name
+      FROM flashcards f
+      LEFT JOIN categories c ON c.id = f.category_id
+      WHERE f.id = ?
+    `).get(id) || null;
   },
   async updateFlashcard(id, front, back, back_format, code_language) {
-    const model = await readData();
-    const f = model.flashcards.find(fc => String(fc.id) === String(id));
-    if (!f) return null;
-    f.front = front;
-    f.back = back;
-    f.back_format = back_format;
-    if (typeof code_language !== 'undefined') {
-      f.code_language = code_language;
-    }
-    f.updated_at = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    await writeData(model);
-    const category_name = (model.categories.find(c => c.id === f.category_id) || {}).name;
-    return { ...f, category_name };
+    const ts = nowTS();
+    const info = db.prepare(`
+      UPDATE flashcards
+      SET front = ?, back = ?, back_format = ?, code_language = ?, updated_at = ?
+      WHERE id = ?
+    `).run(front, back, back_format, code_language || null, ts, id);
+    if (info.changes === 0) return null;
+    return statements.getFlashcardById(id);
   },
   async deleteFlashcard(id) {
-    const model = await readData();
-    const before = model.flashcards.length;
-    model.flashcards = model.flashcards.filter(fc => String(fc.id) !== String(id));
-    const changed = before !== model.flashcards.length;
-    if (changed) await writeData(model);
-    return changed;
+    const info = db.prepare('DELETE FROM flashcards WHERE id = ?').run(id);
+    return info.changes > 0;
   },
   async countFlashcardsByCategory(categoryId) {
-    const model = await readData();
-    const count = model.flashcards.filter(f => String(f.category_id) === String(categoryId)).length;
-    return { count };
+    const row = db.prepare('SELECT COUNT(*) as count FROM flashcards WHERE category_id = ?').get(categoryId);
+    return { count: row.count };
   }
 };
 

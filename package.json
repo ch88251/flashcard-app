@@ -11,7 +11,8 @@
     "server": "node server/index.js",
     "server:dev": "node --watch server/index.js",
     "dev:full": "concurrently \"npm run server:dev\" \"npm run dev\"",
-    "export:json": "node server/export_sqlite_to_json.js"
+    "export:json": "node server/export_sqlite_to_json.js",
+    "import:json": "node server/import_json_to_sqlite.js"
   },
   "dependencies": {
     "better-sqlite3": "^12.4.1",
