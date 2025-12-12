@@ -179,7 +179,44 @@ class FlashcardAPI {
       }
       if (response.status === 401) throw new Error('Unauthorized');
     } catch (_) {}
-    throw new Error('updateFlashcard is not supported in static JSON mode');
+    // Fallback: update in localStorage overlay if present
+    const overlayKey = 'flashcards_overlay';
+    try {
+      const raw = localStorage.getItem(overlayKey);
+      const overlay = raw ? JSON.parse(raw) : {};
+      let changed = false;
+      overlay.flashcards = (overlay.flashcards || []).map(fc => {
+        if (String(fc.id) === String(id)) {
+          changed = true;
+          const now = new Date().toISOString();
+          return {
+            ...fc,
+            front,
+            back,
+            back_format: backFormat,
+            code_language: codeLanguage,
+            updated_at: now,
+          };
+        }
+        return fc;
+      });
+      if (changed) {
+        localStorage.setItem(overlayKey, JSON.stringify(overlay));
+        const base = await loadData();
+        cachePromise = Promise.resolve({
+          categories: base.categories,
+          flashcards: base.flashcards.map(fc => (String(fc.id) === String(id) ? {
+            ...fc,
+            front,
+            back,
+            back_format: backFormat,
+            code_language: codeLanguage,
+          } : fc)),
+        });
+        return overlay.flashcards.find(fc => String(fc.id) === String(id));
+      }
+    } catch (_) {}
+    throw new Error('Failed to update flashcard');
   }
 
   // login moved to standalone function below to avoid parser issues
