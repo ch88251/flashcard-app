@@ -10,7 +10,8 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
   const isProd = import.meta.env.MODE === 'production';
   const host = typeof window !== 'undefined' ? window.location.hostname : '';
   const isLocal = host.includes('localhost') || host.startsWith('127.');
-  const isReadOnly = isProd && !isLocal;
+  // Re-enable admin mutations on production (auth will be enforced by server)
+  const isReadOnly = false;
   
   // Form states
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -156,11 +157,7 @@ function AdminPanel({ onBack, onCategoriesChanged }) {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto p-6">
-        {isProd && !isLocal && (
-          <div className="mb-4 rounded border border-yellow-300 bg-yellow-50 text-yellow-900 p-3 text-sm">
-            Read-only mode on production; make changes locally and redeploy.
-          </div>
-        )}
+        {/* Read-only banner removed; production mutations enabled with auth */}
         
         {error && (
           <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
