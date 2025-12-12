@@ -2,16 +2,6 @@ import { statements } from '../server/database.js';
 import { requireAuth } from './_auth.js';
 import { readJsonBody } from './_utils.js';
 
-async function readStaticData(req) {
-  const host = req.headers?.host || '';
-  const isLocal = host.includes('localhost') || host.startsWith('127.');
-  const protocol = isLocal ? 'http' : 'https';
-  const url = `${protocol}://${host}/data.json?ts=${Date.now()}`;
-  const resp = await fetch(url, { cache: 'no-store' });
-  if (!resp.ok) throw new Error('Failed to fetch static data.json');
-  return resp.json();
-}
-
 export default async function handler(req, res) {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
@@ -22,26 +12,6 @@ export default async function handler(req, res) {
     // /api/flashcards
     if (parts.length === 2) {
       if (method === 'GET') {
-        const isProd = process.env.NODE_ENV === 'production';
-        const host = req.headers?.host || '';
-        const isLocal = host.includes('localhost') || host.startsWith('127.');
-        if (isProd && !isLocal) {
-          try {
-            const data = await readStaticData(req);
-            const categories = Array.isArray(data.categories) ? data.categories : [];
-            const flashcards = (Array.isArray(data.flashcards) ? data.flashcards : []).map(f => ({
-              ...f,
-              category_name: (categories.find(c => String(c.id) === String(f.category_id)) || {}).name,
-            })).sort((a, b) => {
-              const an = a.category_name || '';
-              const bn = b.category_name || '';
-              return an.localeCompare(bn) || a.id - b.id;
-            });
-            return res.status(200).json(flashcards);
-          } catch (_) {
-            // Fallback to statements if static fetch fails
-          }
-        }
         const flashcards = await statements.getAllFlashcards();
         return res.status(200).json(flashcards);
       }
@@ -75,21 +45,6 @@ export default async function handler(req, res) {
     if (parts.length === 3) {
       const id = parts[2];
       if (method === 'GET') {
-        const isProd = process.env.NODE_ENV === 'production';
-        const host = req.headers?.host || '';
-        const isLocal = host.includes('localhost') || host.startsWith('127.');
-        if (isProd && !isLocal) {
-          try {
-            const data = await readStaticData(req);
-            const categories = Array.isArray(data.categories) ? data.categories : [];
-            const f = (Array.isArray(data.flashcards) ? data.flashcards : []).find(fc => String(fc.id) === String(id));
-            if (!f) return res.status(404).json({ error: 'Flashcard not found' });
-            const category_name = (categories.find(c => String(c.id) === String(f.category_id)) || {}).name;
-            return res.status(200).json({ ...f, category_name });
-          } catch (_) {
-            // Fallback
-          }
-        }
         const card = await statements.getFlashcardById(id);
         if (!card) return res.status(404).json({ error: 'Flashcard not found' });
         return res.status(200).json(card);

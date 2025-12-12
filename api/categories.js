@@ -2,16 +2,6 @@ import { statements } from '../server/database.js';
 import { requireAuth } from './_auth.js';
 import { readJsonBody } from './_utils.js';
 
-async function readStaticData(req) {
-  const host = req.headers?.host || '';
-  const isLocal = host.includes('localhost') || host.startsWith('127.');
-  const protocol = isLocal ? 'http' : 'https';
-  const url = `${protocol}://${host}/data.json?ts=${Date.now()}`;
-  const resp = await fetch(url, { cache: 'no-store' });
-  if (!resp.ok) throw new Error('Failed to fetch static data.json');
-  return resp.json();
-}
-
 export default async function handler(req, res) {
   try {
     const url = new URL(req.url, `http://${req.headers.host}`);
@@ -22,18 +12,6 @@ export default async function handler(req, res) {
     // /api/categories
     if (parts.length === 2) {
       if (method === 'GET') {
-        const isProd = process.env.NODE_ENV === 'production';
-        const host = req.headers?.host || '';
-        const isLocal = host.includes('localhost') || host.startsWith('127.');
-        if (isProd && !isLocal) {
-          try {
-            const data = await readStaticData(req);
-            const categories = Array.isArray(data.categories) ? data.categories : [];
-            return res.status(200).json(categories.sort((a, b) => a.name.localeCompare(b.name)));
-          } catch (_) {
-            // Fallback to statements if static fetch fails
-          }
-        }
         const categories = await statements.getAllCategories();
         return res.status(200).json(categories);
       }
