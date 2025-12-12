@@ -35,6 +35,18 @@
       "name": "Metrics & Monitoring",
       "created_at": "2025-12-07 17:30:55",
       "updated_at": "2025-12-07 17:30:55"
+    },
+    {
+      "id": 7,
+      "name": "Microservices",
+      "created_at": "2025-12-09 17:30:55",
+      "updated_at": "2025-12-09 17:30:55"
+    },
+    {
+      "id": 8,
+      "name": "Selenium",
+      "created_at": "2025-12-10 17:30:55",
+      "updated_at": "2025-12-10 17:30:55"
     }
   ],
   "flashcards": [
@@ -640,6 +652,71 @@
       "back_format": "list",
       "created_at": "2025-12-07 23:16:00",
       "updated_at": "2025-12-07 23:16:00"
+    },
+    {
+      "id": 70,
+      "category_id": 7,
+      "front": "Data Management",
+      "back": "Database per service\n\nShared database\n\nAPI composition\n\nCommand Query Responsibility Segregation (CQRS)\n\nEvent sourcing",
+      "back_format": "list",
+      "created_at": "2025-12-07 23:16:01",
+      "updated_at": "2025-12-07 23:16:01"
+    },
+    {
+      "id": 71,
+      "category_id": 8,
+      "front": "Explicit wait code example",
+      "back": "from selenium import webdriver\nfrom selenium.webdriver.common.by import By\nfrom selenium.webdriver.support.ui import WebDriverWait\nfrom selenium.webdriver.support import expected_conditions as EC\n\ndriver = webdriver.Chrome()\n\ndriver.get(\"https://example.com\")\n\n# Explicit wait: wait up to 10 seconds for element to be clickable\nwait = WebDriverWait(driver, 10)\nelement = wait.until(EC.element_to_be_clickable((By.ID, \"submit-btn\")))\nelement.click()\n",
+      "back_format": "code",
+      "code_language": "python",
+      "created_at": "2025-12-11 03:39:39",
+      "updated_at": "2025-12-11 03:39:39"
+    },
+    {
+      "id": 72,
+      "category_id": 8,
+      "front": "Fluent wait code example",
+      "back": "from selenium import webdriver\nfrom selenium.webdriver.common.by import By\nfrom selenium.webdriver.support.ui import WebDriverWait\nfrom selenium.webdriver.support import expected_conditions as EC\nfrom selenium.common.exceptions import NoSuchElementException\n\ndriver = webdriver.Chrome()\n\ndriver.get(\"https://example.com\")\n\n# Fluent wait: 20 sec timeout, poll every 1 sec, ignore NoSuchElementException\nwait = WebDriverWait(driver, timeout=20, poll_frequency=1,\n                     ignored_exceptions=[NoSuchElementException])\n\nelement = wait.until(EC.presence_of_element_located((By.CLASS_NAME, \"dynamic-item\")))\nprint(element.text)\n",
+      "back_format": "code",
+      "code_language": "python",
+      "created_at": "2025-12-11 03:40:47",
+      "updated_at": "2025-12-11 03:40:47"
+    },
+    {
+      "id": 73,
+      "category_id": 8,
+      "front": "What problems do driver factories solve?",
+      "back": "duplicated setup logic\n\ninconsistent capabilities\n\ndifficulty switching environments/browsers\n\npoor maintainability",
+      "back_format": "list",
+      "created_at": "2025-12-11 03:50:36",
+      "updated_at": "2025-12-11 03:50:36"
+    },
+    {
+      "id": 74,
+      "category_id": 8,
+      "front": "How do you manage your webdriver when running tests in parallel with pytest?",
+      "back": "When running Selenium tests in parallel with Pytest (typically using pytest-xdist), the biggest risk is that multiple tests collide by sharing a single WebDriver instance. To avoid that, Use a per-worker / per-test driver lifecycle managed through fixtures and sometimes thread-local storage.",
+      "back_format": "sentence",
+      "created_at": "2025-12-11 04:15:45",
+      "updated_at": "2025-12-11 04:15:45"
+    },
+    {
+      "id": 75,
+      "category_id": 8,
+      "front": "Goals of a Good Driver Lifecycle in Parallel Execution",
+      "back": "Each test runs with its own isolated driver instance.\n\nDrivers are created lazily and closed reliably after each test.\n\nFixtures must be session-safe and thread-safe when executed via pytest-xdist.\n\nParallel runs on Grid or cloud providers should require zero changes to test code.",
+      "back_format": "list",
+      "created_at": "2025-12-11 04:16:53",
+      "updated_at": "2025-12-11 04:16:53"
+    },
+    {
+      "id": 76,
+      "category_id": 8,
+      "front": "Challenge: Tests were extremely flaky due to async behavior",
+      "back": "Introduced event-aware synchronization, replacing hard waits with polling utilities that checked system state via APIs and message offsets.\n\nAdded a Kafka test harness that could publish controlled messages and wait for consumption, eliminating timing ambiguity.",
+      "back_format": "list",
+      "created_at": "2025-12-11 05:05:58",
+      "updated_at": "2025-12-11 05:05:58"
     }
   ]
 }
