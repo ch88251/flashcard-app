@@ -2,7 +2,6 @@ import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import Database from 'better-sqlite3';
-import { neon } from '@neondatabase/serverless';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 dotenv.config();
@@ -11,36 +10,29 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, '..');
 const dbPath = path.join(repoRoot, 'server', 'flashcards.sqlite');
-const useNeon = !!process.env.DATABASE_URL;
-let db;
-let sql;
 
-if (useNeon) {
-  sql = neon(process.env.DATABASE_URL);
-} else {
-  db = new Database(dbPath);
-  db.pragma('journal_mode = WAL');
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS categories (
-      id INTEGER PRIMARY KEY,
-      name TEXT UNIQUE NOT NULL,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL
-    );
+const db = new Database(dbPath);
+db.pragma('journal_mode = WAL');
+db.exec(`
+  CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY,
+    name TEXT UNIQUE NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
 
-    CREATE TABLE IF NOT EXISTS flashcards (
-      id INTEGER PRIMARY KEY,
-      category_id INTEGER NOT NULL,
-      front TEXT NOT NULL,
-      back TEXT NOT NULL,
-      back_format TEXT DEFAULT 'sentence' CHECK (back_format IN ('sentence', 'list', 'code')),
-      code_language TEXT,
-      created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
-    );
-  `);
-}
+  CREATE TABLE IF NOT EXISTS flashcards (
+    id INTEGER PRIMARY KEY,
+    category_id INTEGER NOT NULL,
+    front TEXT NOT NULL,
+    back TEXT NOT NULL,
+    back_format TEXT DEFAULT 'sentence' CHECK (back_format IN ('sentence', 'list', 'code')),
+    code_language TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+  );
+`);
 
 function nowTS() {
   return new Date().toISOString().replace('T', ' ').slice(0, 19);
@@ -51,73 +43,30 @@ const statements = {
   // Categories
   async insertCategory(name) {
     const ts = nowTS();
-    if (useNeon) {
-      try {
-        const rows = await sql`
-          INSERT INTO categories (name, created_at, updated_at)
-          VALUES (${name}, ${ts}, ${ts})
-          RETURNING id, name, created_at, updated_at
-        `;
-        return rows[0];
-      } catch (err) {
-        if (String(err.message).toLowerCase().includes('unique')) {
-          const e = new Error('Category already exists');
-          e.code = 'DUPLICATE';
-          throw e;
-        }
-        throw err;
+    try {
+      const stmt = db.prepare('INSERT INTO categories (name, created_at, updated_at) VALUES (?, ?, ?)');
+      const info = stmt.run(name, ts, ts);
+      return { id: info.lastInsertRowid, name, created_at: ts, updated_at: ts };
+    } catch (err) {
+      if (String(err.message).includes('UNIQUE')) {
+        const e = new Error('Category already exists');
+        e.code = 'DUPLICATE';
+        throw e;
       }
-    } else {
-      try {
-        const stmt = db.prepare('INSERT INTO categories (name, created_at, updated_at) VALUES (?, ?, ?)');
-        const info = stmt.run(name, ts, ts);
-        return { id: info.lastInsertRowid, name, created_at: ts, updated_at: ts };
-      } catch (err) {
-        if (String(err.message).includes('UNIQUE')) {
-          const e = new Error('Category already exists');
-          e.code = 'DUPLICATE';
-          throw e;
-        }
-        throw err;
-      }
+      throw err;
     }
   },
   async getAllCategories() {
-    if (useNeon) {
-      const rows = await sql`SELECT id, name, created_at, updated_at FROM categories ORDER BY name`;
-      return rows;
-    }
     return db.prepare('SELECT id, name, created_at, updated_at FROM categories ORDER BY name').all();
   },
   async getCategoryById(id) {
-    if (useNeon) {
-      const rows = await sql`SELECT id, name, created_at, updated_at FROM categories WHERE id = ${id}`;
-      return rows[0] || null;
-    }
     return db.prepare('SELECT id, name, created_at, updated_at FROM categories WHERE id = ?').get(id) || null;
   },
   async getCategoryByName(name) {
-    if (useNeon) {
-      const rows = await sql`SELECT id, name, created_at, updated_at FROM categories WHERE name = ${name}`;
-      return rows[0] || null;
-    }
     return db.prepare('SELECT id, name, created_at, updated_at FROM categories WHERE name = ?').get(name) || null;
   },
   async updateCategory(id, name) {
     const ts = nowTS();
-    if (useNeon) {
-      const conflict = await sql`SELECT id FROM categories WHERE name = ${name} AND id <> ${id}`;
-      if (conflict.length) {
-        const err = new Error('Category name already exists');
-        err.code = 'DUPLICATE';
-        throw err;
-      }
-      const rows = await sql`
-        UPDATE categories SET name = ${name}, updated_at = ${ts} WHERE id = ${id}
-        RETURNING id, name, created_at, updated_at
-      `;
-      return rows[0] || null;
-    }
     const existing = db.prepare('SELECT id FROM categories WHERE name = ? AND id <> ?').get(name, id);
     if (existing) {
       const err = new Error('Category name already exists');
@@ -129,10 +78,6 @@ const statements = {
     return db.prepare('SELECT id, name, created_at, updated_at FROM categories WHERE id = ?').get(id);
   },
   async deleteCategory(id) {
-    if (useNeon) {
-      const rows = await sql`DELETE FROM categories WHERE id = ${id} RETURNING id`;
-      return rows.length > 0;
-    }
     const info = db.prepare('DELETE FROM categories WHERE id = ?').run(id);
     return info.changes > 0;
   },
@@ -140,23 +85,6 @@ const statements = {
   // Flashcards
   async insertFlashcard(category_id, front, back, back_format, code_language) {
     const ts = nowTS();
-    if (useNeon) {
-      try {
-        const rows = await sql`
-          INSERT INTO flashcards (category_id, front, back, back_format, code_language, created_at, updated_at)
-          VALUES (${Number(category_id)}, ${front}, ${back}, ${back_format}, ${code_language || null}, ${ts}, ${ts})
-          RETURNING id, category_id, front, back, back_format, code_language, created_at, updated_at
-        `;
-        return rows[0];
-      } catch (err) {
-        if (String(err.message).toLowerCase().includes('foreign key')) {
-          const e = new Error('Invalid category ID');
-          e.code = 'FOREIGN_KEY';
-          throw e;
-        }
-        throw err;
-      }
-    }
     try {
       const stmt = db.prepare(`
         INSERT INTO flashcards (category_id, front, back, back_format, code_language, created_at, updated_at)
@@ -175,16 +103,6 @@ const statements = {
     }
   },
   async getAllFlashcards() {
-    if (useNeon) {
-      const rows = await sql`
-        SELECT f.id, f.category_id, f.front, f.back, f.back_format, f.code_language, f.created_at, f.updated_at,
-               c.name AS category_name
-        FROM flashcards f
-        LEFT JOIN categories c ON c.id = f.category_id
-        ORDER BY c.name ASC, f.id ASC
-      `;
-      return rows;
-    }
     const rows = db.prepare(`
       SELECT f.id, f.category_id, f.front, f.back, f.back_format, f.code_language, f.created_at, f.updated_at,
              c.name AS category_name
@@ -195,17 +113,6 @@ const statements = {
     return rows;
   },
   async getFlashcardsByCategory(categoryId) {
-    if (useNeon) {
-      const rows = await sql`
-        SELECT f.id, f.category_id, f.front, f.back, f.back_format, f.code_language, f.created_at, f.updated_at,
-               c.name AS category_name
-        FROM flashcards f
-        LEFT JOIN categories c ON c.id = f.category_id
-        WHERE f.category_id = ${categoryId}
-        ORDER BY f.id ASC
-      `;
-      return rows;
-    }
     const rows = db.prepare(`
       SELECT f.id, f.category_id, f.front, f.back, f.back_format, f.code_language, f.created_at, f.updated_at,
              c.name AS category_name
@@ -217,27 +124,11 @@ const statements = {
     return rows;
   },
   async getFlashcardsByCategoryName(categoryName) {
-    if (useNeon) {
-      const rows = await sql`SELECT id FROM categories WHERE name = ${categoryName}`;
-      const cat = rows[0];
-      if (!cat) return [];
-      return statements.getFlashcardsByCategory(cat.id);
-    }
     const cat = db.prepare('SELECT id FROM categories WHERE name = ?').get(categoryName);
     if (!cat) return [];
     return statements.getFlashcardsByCategory(cat.id);
   },
   async getFlashcardById(id) {
-    if (useNeon) {
-      const rows = await sql`
-        SELECT f.id, f.category_id, f.front, f.back, f.back_format, f.code_language, f.created_at, f.updated_at,
-               c.name AS category_name
-        FROM flashcards f
-        LEFT JOIN categories c ON c.id = f.category_id
-        WHERE f.id = ${id}
-      `;
-      return rows[0] || null;
-    }
     return db.prepare(`
       SELECT f.id, f.category_id, f.front, f.back, f.back_format, f.code_language, f.created_at, f.updated_at,
              c.name AS category_name
@@ -248,16 +139,6 @@ const statements = {
   },
   async updateFlashcard(id, front, back, back_format, code_language) {
     const ts = nowTS();
-    if (useNeon) {
-      const rows = await sql`
-        UPDATE flashcards
-        SET front = ${front}, back = ${back}, back_format = ${back_format}, code_language = ${code_language || null}, updated_at = ${ts}
-        WHERE id = ${id}
-        RETURNING id
-      `;
-      if (!rows.length) return null;
-      return statements.getFlashcardById(id);
-    }
     const info = db.prepare(`
       UPDATE flashcards
       SET front = ?, back = ?, back_format = ?, code_language = ?, updated_at = ?
@@ -267,18 +148,10 @@ const statements = {
     return statements.getFlashcardById(id);
   },
   async deleteFlashcard(id) {
-    if (useNeon) {
-      const rows = await sql`DELETE FROM flashcards WHERE id = ${id} RETURNING id`;
-      return rows.length > 0;
-    }
     const info = db.prepare('DELETE FROM flashcards WHERE id = ?').run(id);
     return info.changes > 0;
   },
   async countFlashcardsByCategory(categoryId) {
-    if (useNeon) {
-      const rows = await sql`SELECT COUNT(*)::int as count FROM flashcards WHERE category_id = ${categoryId}`;
-      return { count: rows[0]?.count ?? 0 };
-    }
     const row = db.prepare('SELECT COUNT(*) as count FROM flashcards WHERE category_id = ?').get(categoryId);
     return { count: row.count };
   }

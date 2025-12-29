@@ -101,7 +101,16 @@ function App() {
   if (currentView === 'admin') {
     return (
       <AdminPanel 
-        onBack={() => setCurrentView('flashcards')}
+        onBack={async () => {
+          setCurrentView('flashcards');
+          // Reload categories when returning from admin
+          try {
+            const categoriesData = await flashcardAPI.fetchCategories();
+            setCategories(categoriesData);
+          } catch (err) {
+            console.error('Failed to reload categories:', err);
+          }
+        }}
         onCategoriesChanged={(updated) => setCategories(updated)}
       />
     );
