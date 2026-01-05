@@ -1,0 +1,29 @@
+{
+  "subjects": [
+    {
+      "name": "Docker",
+      "cards": [
+        {
+          "front": "What is a container image?",
+          "back": "A container image is a read-only template made up of layers.",
+          "format": "sentence"
+        },
+        {
+          "front": "What is a Docker layer?",
+          "back": "Each instruction in a Dockerfile creates a new layer.",
+          "format": "sentence"
+        }
+      ]
+    },
+    {
+      "name": "Kubernetes",
+      "cards": [
+        {
+          "front": "What is a Pod?",
+          "back": "A Pod is the smallest deployable unit in Kubernetes.",
+          "format": "sentence"
+        }
+      ]
+    }
+  ]
+}

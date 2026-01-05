@@ -13,7 +13,9 @@
     "dev:full": "concurrently \"npm run server:dev\" \"npm run dev\"",
     "export:json": "node server/export_sqlite_to_json.js",
     "import:json": "node server/import_json_to_sqlite.js",
-    "migrate": "node server/migrate_json_to_sqlite.js"
+    "migrate": "node server/migrate_json_to_sqlite.js",
+    "db:seed": "node server/db-seed.js",
+    "db:clean": "node server/db-clean.js"
   },
   "dependencies": {
     "@vercel/kv": "^1.0.1",

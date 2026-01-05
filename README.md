@@ -1,14 +1,15 @@
 # Flashcard Application
 
+## Overview
+
 This is a lightweight flashcard study app built with React (Vite + TailwindCSS) 
 and a SQLite database with Node/Express API.
 
 The app provides a simple study interface (flip front/back) and an admin UI 
 for managing categories and flashcards.
 
-## Overview
-
 ### Tech stack
+
 - Frontend: React + Vite, TailwindCSS for styling
 - Backend: Node.js + Express.js
 - Database: SQLite (with better-sqlite3)
@@ -23,7 +24,7 @@ npm run dev:full
 
 This will start:
 - Backend API server on port 3001
-- Frontend dev server on port 5173 (default Vite port)
+- Frontend dev server on port 3000
 
 ### Running Separately
 
@@ -37,25 +38,42 @@ Frontend only:
 npm run dev
 ```
 
-## Database Migration
+### Seeding the Database
 
-If you're migrating from the old `data.json` format to SQLite, run:
+To quickly populate your database with test data, you can use the seeding script:
 
+```bash
+npm run db:seed
 ```
-npm run migrate
+
+This reads from `/server/seed-data.json` and populates the database. The seed script:
+- Creates categories (subjects) if they don't exist
+- Adds flashcards, skipping duplicates
+- Can be run multiple times safely (idempotent)
+
+To start fresh:
+```bash
+npm run db:clean  # Remove all data
+npm run db:seed   # Add seed data
 ```
 
-This will:
-- Read all categories and flashcards from `/public/data.json`
-- Import them into the SQLite database at `/server/flashcards.sqlite`
-- Skip duplicates if the script is run multiple times
-- Preserve existing data in the database
-
-### Database Scripts
-
-- `npm run migrate` - Migrate data from data.json to SQLite
-- `npm run export:json` - Export SQLite database to JSON format (if the script exists)
-- `npm run import:json` - Import JSON data to SQLite (if the script exists)
+The seed data format in `seed-data.json`:
+```json
+{
+  "subjects": [
+    {
+      "name": "Category Name",
+      "cards": [
+        {
+          "front": "Question",
+          "back": "Answer",
+          "format": "sentence"
+        }
+      ]
+    }
+  ]
+}
+```
 
 ## Database Schema
 
@@ -76,4 +94,14 @@ The SQLite database consists of two main tables:
 - `code_language` - Programming language (for code format)
 - `created_at` - Timestamp
 - `updated_at` - Timestamp
+
+## User Interfaces
+
+### Admin Interface
+![Admin Page](docs/admin-panel.png)
+
+### Flashcard Front
+![Back Side](docs/front-side.png)
+
+### Flashcard Back
 ![Back Side](docs/back-side.png)
