@@ -1,7 +1,7 @@
-describe('Flashcard subject dropdown', () => {
+describe('Viewing flashcards', () => {
   const baseUrl = 'http://localhost:3000';
 
-  it('let\'s me select a subject', () => {
+  it('let\'s me view flash cards', () => {
     cy.visit(baseUrl);
 
     // Locate the dropdown

@@ -1,304 +1,160 @@
-const DATA_URL = '/data.json';
+const API_BASE_URL = '/api';
 
-let cachePromise;
-async function loadData() {
-  if (!cachePromise) {
-    cachePromise = fetch(DATA_URL).then(async (res) => {
-      if (!res.ok) throw new Error('Failed to load data.json');
-      const data = await res.json();
-      const base = {
-        categories: Array.isArray(data.categories) ? data.categories : [],
-        flashcards: Array.isArray(data.flashcards) ? data.flashcards : [],
-      };
-      // Merge overlay from localStorage if present
-      let overCats = [];
-      let overCards = [];
-      try {
-        const raw = localStorage.getItem('flashcards_overlay');
-        if (raw) {
-          const overlay = JSON.parse(raw);
-          overCats = Array.isArray(overlay.categories) ? overlay.categories : [];
-          overCards = Array.isArray(overlay.flashcards) ? overlay.flashcards : [];
-        }
-      } catch (_) {
-        // Safari private mode or denied storage; ignore overlay
-      }
-      return {
-        categories: base.categories.concat(overCats),
-        flashcards: base.flashcards.concat(overCards),
-      };
-    });
-  }
-  return cachePromise;
-}
+// Cache for API responses
+let categoriesCache = null;
+let flashcardsCache = null;
 class FlashcardAPI {
   
   async fetchCategories() {
-    // Prefer backend if available
-    try {
-      const response = await fetch('/api/categories');
-      if (response.ok) {
-        return (await response.json()).slice().sort((a, b) => a.name.localeCompare(b.name));
-      }
-    } catch (_) {}
-    const { categories } = await loadData();
+    const response = await fetch(`${API_BASE_URL}/categories`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch categories: ${response.statusText}`);
+    }
+    const categories = await response.json();
+    categoriesCache = categories;
     return categories.slice().sort((a, b) => a.name.localeCompare(b.name));
   }
 
   async fetchFlashcardsByCategory(categoryName) {
-    // Prefer backend if available
-    try {
-      const response = await fetch(`/api/flashcards/category/${encodeURIComponent(categoryName)}`);
-      if (response.ok) {
-        return (await response.json()).sort((a, b) => a.id - b.id);
-      }
-    } catch (_) {}
-    const { categories, flashcards } = await loadData();
-    const cat = categories.find(c => c.name === categoryName);
-    if (!cat) return [];
-    return flashcards
-      .filter(f => String(f.category_id) === String(cat.id))
-      .map(f => ({ ...f, category_name: cat.name }))
-      .sort((a, b) => a.id - b.id);
+    const response = await fetch(`${API_BASE_URL}/flashcards/category/${encodeURIComponent(categoryName)}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch flashcards: ${response.statusText}`);
+    }
+    return (await response.json()).sort((a, b) => a.id - b.id);
   }
 
   async fetchAllFlashcards() {
-    // Prefer backend if available
-    try {
-      const response = await fetch('/api/flashcards');
-      if (response.ok) {
-        const list = await response.json();
-        return list.sort((a, b) => {
-          const an = a.category_name || '';
-          const bn = b.category_name || '';
-          return an.localeCompare(bn) || a.id - b.id;
-        });
-      }
-    } catch (_) {}
-    const { categories, flashcards } = await loadData();
-    return flashcards
-      .map(f => ({
-        ...f,
-        category_name: (categories.find(c => String(c.id) === String(f.category_id)) || {}).name,
-      }))
-      .sort((a, b) => {
-        const an = a.category_name || '';
-        const bn = b.category_name || '';
-        return an.localeCompare(bn) || a.id - b.id;
-      });
+    const response = await fetch(`${API_BASE_URL}/flashcards`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch flashcards: ${response.statusText}`);
+    }
+    const list = await response.json();
+    flashcardsCache = list;
+    return list.sort((a, b) => {
+      const an = a.category_name || '';
+      const bn = b.category_name || '';
+      return an.localeCompare(bn) || a.id - b.id;
+    });
   }
 
   async createCategory(name) {
-    // Try backend if available; otherwise fall back to localStorage overlay
-    try {
-      const response = await fetch('/api/categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
-      });
-      if (response.ok) {
-        // Invalidate and refresh cache so reads include new category
-        cachePromise = null;
-        return response.json();
-      }
-      if (response.status === 401) throw new Error('Unauthorized');
-    } catch (_) {
-      // Ignore and use fallback
-    }
-
-    // Fallback: persist in localStorage overlay and update cache
-    const overlayKey = 'flashcards_overlay';
-    const overlay = JSON.parse(localStorage.getItem(overlayKey) || '{}');
-    const { categories } = await loadData();
-    const nextId = (categories.reduce((m, c) => Math.max(m, Number(c.id) || 0), 0) || 0) + 1;
-    const newCat = { id: nextId, name, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-    overlay.categories = (overlay.categories || []).concat(newCat);
-    localStorage.setItem(overlayKey, JSON.stringify(overlay));
-
-    // Update cache to include overlay data
-    const base = await loadData();
-    cachePromise = Promise.resolve({
-      categories: base.categories.concat(overlay.categories || []),
-      flashcards: base.flashcards,
+    const response = await fetch(`${API_BASE_URL}/categories`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
     });
-    return newCat;
+    
+    if (!response.ok) {
+      if (response.status === 409) {
+        throw new Error('Category already exists');
+      }
+      if (response.status === 401) {
+        throw new Error('Unauthorized');
+      }
+      const error = await response.json().catch(() => ({}));
+      throw new Error(error.error || 'Failed to create category');
+    }
+    
+    categoriesCache = null; // Invalidate cache
+    return response.json();
   }
 
   async createFlashcard(categoryId, front, back, backFormat = 'sentence', codeLanguage) {
-    // Try backend first
-    try {
-      const response = await fetch('/api/flashcards', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          category_id: categoryId,
-          front,
-          back,
-          back_format: backFormat,
-          code_language: codeLanguage,
-        }),
-      });
-      if (response.ok) {
-        cachePromise = null;
-        return response.json();
-      }
-      if (response.status === 401) throw new Error('Unauthorized');
-    } catch (_) {
-      // ignore and use fallback
-    }
-
-    // Fallback: localStorage overlay
-    const overlayKey = 'flashcards_overlay';
-    const overlay = JSON.parse(localStorage.getItem(overlayKey) || '{}');
-    const { flashcards } = await loadData();
-    const nextId = (flashcards.reduce((m, f) => Math.max(m, Number(f.id) || 0), 0) || 0) + 1;
-    const now = new Date().toISOString();
-    const newCard = { id: nextId, category_id: Number(categoryId), front, back, back_format: backFormat, code_language: codeLanguage, created_at: now, updated_at: now };
-    overlay.flashcards = (overlay.flashcards || []).concat(newCard);
-    localStorage.setItem(overlayKey, JSON.stringify(overlay));
-
-    // Update cache to include overlay
-    const base = await loadData();
-    cachePromise = Promise.resolve({
-      categories: base.categories,
-      flashcards: base.flashcards.concat(overlay.flashcards || []),
+    const response = await fetch(`${API_BASE_URL}/flashcards`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        category_id: categoryId,
+        front,
+        back,
+        back_format: backFormat,
+        code_language: codeLanguage,
+      }),
     });
-    return newCard;
+    
+    if (!response.ok) {
+      if (response.status === 400) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || 'Invalid flashcard data');
+      }
+      if (response.status === 401) {
+        throw new Error('Unauthorized');
+      }
+      throw new Error('Failed to create flashcard');
+    }
+    
+    flashcardsCache = null; // Invalidate cache
+    return response.json();
   }
 
   async updateFlashcard(id, front, back, backFormat = 'sentence', codeLanguage) {
-    try {
-      const response = await fetch(`/api/flashcards/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ front, back, back_format: backFormat, code_language: codeLanguage }),
-      });
-      if (response.ok) {
-        cachePromise = null;
-        return response.json();
+    const response = await fetch(`${API_BASE_URL}/flashcards/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ front, back, back_format: backFormat, code_language: codeLanguage }),
+    });
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Flashcard not found');
       }
-      if (response.status === 401) throw new Error('Unauthorized');
-    } catch (_) {}
-    // Fallback: update in localStorage overlay if present
-    const overlayKey = 'flashcards_overlay';
-    try {
-      const raw = localStorage.getItem(overlayKey);
-      const overlay = raw ? JSON.parse(raw) : {};
-      let changed = false;
-      overlay.flashcards = (overlay.flashcards || []).map(fc => {
-        if (String(fc.id) === String(id)) {
-          changed = true;
-          const now = new Date().toISOString();
-          return {
-            ...fc,
-            front,
-            back,
-            back_format: backFormat,
-            code_language: codeLanguage,
-            updated_at: now,
-          };
-        }
-        return fc;
-      });
-      if (changed) {
-        localStorage.setItem(overlayKey, JSON.stringify(overlay));
-        const base = await loadData();
-        cachePromise = Promise.resolve({
-          categories: base.categories,
-          flashcards: base.flashcards.map(fc => (String(fc.id) === String(id) ? {
-            ...fc,
-            front,
-            back,
-            back_format: backFormat,
-            code_language: codeLanguage,
-          } : fc)),
-        });
-        return overlay.flashcards.find(fc => String(fc.id) === String(id));
+      if (response.status === 401) {
+        throw new Error('Unauthorized');
       }
-    } catch (_) {}
-    throw new Error('Failed to update flashcard');
+      throw new Error('Failed to update flashcard');
+    }
+    
+    flashcardsCache = null; // Invalidate cache
+    return response.json();
   }
 
   // login moved to standalone function below to avoid parser issues
 
   async deleteFlashcard(id) {
-    // Try backend first
-    try {
-      const response = await fetch(`/api/flashcards/${id}`, { method: 'DELETE' });
-      if (response.ok) {
-        cachePromise = null;
-        return;
+    const response = await fetch(`${API_BASE_URL}/flashcards/${id}`, { method: 'DELETE' });
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Flashcard not found');
       }
-      if (response.status === 401) throw new Error('Unauthorized');
-    } catch (_) {}
-
-    // Fallback: remove from localStorage overlay
-    const overlayKey = 'flashcards_overlay';
-    try {
-      const raw = localStorage.getItem(overlayKey);
-      if (raw) {
-        const overlay = JSON.parse(raw);
-        const before = Array.isArray(overlay.flashcards) ? overlay.flashcards.length : 0;
-        overlay.flashcards = (overlay.flashcards || []).filter(fc => String(fc.id) !== String(id));
-        if (Array.isArray(overlay.flashcards) && overlay.flashcards.length !== before) {
-          localStorage.setItem(overlayKey, JSON.stringify(overlay));
-          const base = await loadData();
-          cachePromise = Promise.resolve({
-            categories: base.categories,
-            flashcards: base.flashcards.filter(fc => String(fc.id) !== String(id)),
-          });
-          return;
-        }
+      if (response.status === 401) {
+        throw new Error('Unauthorized');
       }
-    } catch (_) {}
-    throw new Error('Failed to delete flashcard');
+      throw new Error('Failed to delete flashcard');
+    }
+    
+    flashcardsCache = null; // Invalidate cache
   }
 
   async deleteCategory(id) {
-    // Try backend first; cascades flashcards on server
-    try {
-      const response = await fetch(`/api/categories/${id}`, { method: 'DELETE' });
-      if (response.ok) {
-        cachePromise = null;
-        return;
+    const response = await fetch(`${API_BASE_URL}/categories/${id}`, { method: 'DELETE' });
+    
+    if (!response.ok) {
+      if (response.status === 404) {
+        throw new Error('Category not found');
       }
-      if (response.status === 401) throw new Error('Unauthorized');
-    } catch (_) {}
-
-    // Fallback: remove from localStorage overlay and filter reads
-    const overlayKey = 'flashcards_overlay';
-    try {
-      const raw = localStorage.getItem(overlayKey);
-      const overlay = raw ? JSON.parse(raw) : {};
-      const beforeCats = Array.isArray(overlay.categories) ? overlay.categories.length : 0;
-      overlay.categories = (overlay.categories || []).filter(c => String(c.id) !== String(id));
-      // Also remove flashcards in that category from overlay
-      const beforeCards = Array.isArray(overlay.flashcards) ? overlay.flashcards.length : 0;
-      overlay.flashcards = (overlay.flashcards || []).filter(f => String(f.category_id) !== String(id));
-      const changed = (Array.isArray(overlay.categories) && overlay.categories.length !== beforeCats) ||
-                      (Array.isArray(overlay.flashcards) && overlay.flashcards.length !== beforeCards);
-      if (changed) {
-        localStorage.setItem(overlayKey, JSON.stringify(overlay));
-        const base = await loadData();
-        cachePromise = Promise.resolve({
-          categories: base.categories.filter(c => String(c.id) !== String(id)),
-          flashcards: base.flashcards.filter(f => String(f.category_id) !== String(id)),
-        });
-        return;
+      if (response.status === 401) {
+        throw new Error('Unauthorized');
       }
-    } catch (_) {}
-    throw new Error('Failed to delete category');
+      throw new Error('Failed to delete category');
+    }
+    
+    categoriesCache = null; // Invalidate cache
+    flashcardsCache = null; // Flashcards cascade deleted
   }
 
   async getCategoryStats(id) {
-    const { flashcards } = await loadData();
-    const count = flashcards.filter(f => String(f.category_id) === String(id)).length;
-    return { id, flashcard_count: count };
+    const response = await fetch(`${API_BASE_URL}/categories/${id}/stats`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch category statistics');
+    }
+    return response.json();
   }
 
-  // Helper method to convert old JSON format to new API format for backwards compatibility
+  // Helper method to convert database format to old JSON format for backwards compatibility
   async getCategoriesAsJSON() {
-    const { categories, flashcards } = await loadData();
+    const categories = await this.fetchCategories();
+    const flashcards = await this.fetchAllFlashcards();
     const result = {};
     for (const cat of categories) {
       result[cat.name] = flashcards
@@ -312,7 +168,7 @@ class FlashcardAPI {
 export const flashcardAPI = new FlashcardAPI();
 
 export async function login(username, password) {
-  const response = await fetch('/api/login', {
+  const response = await fetch(`${API_BASE_URL}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
@@ -321,7 +177,8 @@ export async function login(username, password) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.error || 'Login failed');
   }
-  cachePromise = null;
+  categoriesCache = null;
+  flashcardsCache = null;
   return true;
 }
 
@@ -329,14 +186,15 @@ export async function login(username, password) {
 flashcardAPI.login = login;
 
 export async function logout() {
-  const response = await fetch('/api/logout', {
+  const response = await fetch(`${API_BASE_URL}/logout`, {
     method: 'POST'
   });
   if (!response.ok) {
     const err = await response.json().catch(() => ({}));
     throw new Error(err.error || 'Logout failed');
   }
-  cachePromise = null;
+  categoriesCache = null;
+  flashcardsCache = null;
   return true;
 }
 
