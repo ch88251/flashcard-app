@@ -20,7 +20,7 @@ function Flashcard({ front, back, backFormat = 'sentence', code_language, flippe
       }
       
       return (
-        <ul className="text-left space-y-2 max-w-full mt-2">
+        <ul data-testid="flashcard-back-list" className="text-left space-y-2 max-w-full mt-2">
           {items.map((item, index) => (
             <li key={index} className="flex items-start pt-1">
               <span className="text-green-600 mr-2 flex-shrink-0">•</span>
@@ -43,13 +43,13 @@ function Flashcard({ front, back, backFormat = 'sentence', code_language, flippe
 
       const langClass = code_language ? `language-${code_language}` : '';
       return (
-        <pre className="w-full mt-2 p-3 bg-gray-900 text-gray-100 rounded-lg overflow-auto text-sm md:text-base leading-relaxed">
+        <pre data-testid="flashcard-back-code" className="w-full mt-2 p-3 bg-gray-900 text-gray-100 rounded-lg overflow-auto text-sm md:text-base leading-relaxed">
           <code ref={codeRef} className={`font-mono whitespace-pre ${langClass}`}>{back}</code>
         </pre>
       );
     }
     // Default sentence format
-    return <div className="break-words mt-2 leading-relaxed">{back}</div>;
+    return <div data-testid="flashcard-back-text" className="break-words mt-2 leading-relaxed">{back}</div>;
   };
 
   const containerBase = "w-[320px] md:w-[500px] h-[240px] md:h-[300px] flex items-start justify-center rounded-2xl shadow-xl p-8 text-xl md:text-2xl select-none transition-all duration-500 ease-in-out cursor-pointer overflow-y-auto";
@@ -57,11 +57,11 @@ function Flashcard({ front, back, backFormat = 'sentence', code_language, flippe
   return (
     <div className={containerClass} onClick={onFlip}>
       {flipped ? (
-        <div className="w-full pt-3 md:pt-4">
+        <div data-testid="flashcard-back" className="w-full pt-3 md:pt-4">
           {renderBack()}
         </div>
       ) : (
-        <div className="text-center break-words w-full">{front}</div>
+        <div data-testid="flashcard-front" className="text-center break-words w-full">{front}</div>
       )}
     </div>
   );
