@@ -17,5 +17,6 @@ describe('Viewing flashcards', () => {
     cy.get('[data-testid="subject-select"]')
       .select('Docker')
       .should('have.value', 'Docker');
+    
   });
 });
