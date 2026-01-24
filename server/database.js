@@ -1,38 +1,62 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import Database from 'better-sqlite3';
+import pg from 'pg';
+const { Pool } = pg;
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
 dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const repoRoot = path.resolve(__dirname, '..');
-const dbPath = path.join(repoRoot, 'server', 'flashcards.sqlite');
 
-const db = new Database(dbPath);
-db.pragma('journal_mode = WAL');
-db.exec(`
-  CREATE TABLE IF NOT EXISTS categories (
-    id INTEGER PRIMARY KEY,
-    name TEXT UNIQUE NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
-  );
+// PostgreSQL connection configuration
+const config = process.env.DATABASE_URL
+  ? { 
+      connectionString: process.env.DATABASE_URL,
+      ssl: process.env.DATABASE_URL.includes('localhost') ? false : { rejectUnauthorized: false }
+    }
+  : {
+      host: process.env.PGHOST || 'localhost',
+      port: Number(process.env.PGPORT || 5432),
+      user: process.env.PGUSER || 'flashcards',
+      password: process.env.PGPASSWORD || 'flashcards',
+      database: process.env.PGDATABASE || 'flashcards',
+    };
 
-  CREATE TABLE IF NOT EXISTS flashcards (
-    id INTEGER PRIMARY KEY,
-    category_id INTEGER NOT NULL,
-    front TEXT NOT NULL,
-    back TEXT NOT NULL,
-    back_format TEXT DEFAULT 'sentence' CHECK (back_format IN ('sentence', 'list', 'code')),
-    code_language TEXT,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
-  );
-`);
+const pool = new Pool(config);
+
+// Initialize database schema
+async function initializeDatabase() {
+  const client = await pool.connect();
+  try {
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS categories (
+        id SERIAL PRIMARY KEY,
+        name TEXT UNIQUE NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS flashcards (
+        id SERIAL PRIMARY KEY,
+        category_id INTEGER NOT NULL,
+        front TEXT NOT NULL,
+        back TEXT NOT NULL,
+        back_format TEXT DEFAULT 'sentence' CHECK (back_format IN ('sentence', 'list', 'code')),
+        code_language TEXT,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE
+      );
+    `);
+  } finally {
+    client.release();
+  }
+}
+
+// Initialize the database when module is loaded
+await initializeDatabase();
 
 function nowTS() {
   return new Date().toISOString().replace('T', ' ').slice(0, 19);
@@ -44,11 +68,13 @@ const statements = {
   async insertCategory(name) {
     const ts = nowTS();
     try {
-      const stmt = db.prepare('INSERT INTO categories (name, created_at, updated_at) VALUES (?, ?, ?)');
-      const info = stmt.run(name, ts, ts);
-      return { id: info.lastInsertRowid, name, created_at: ts, updated_at: ts };
+      const result = await pool.query(
+        'INSERT INTO categories (name, created_at, updated_at) VALUES ($1, $2, $3) RETURNING *',
+        [name, ts, ts]
+      );
+      return result.rows[0];
     } catch (err) {
-      if (String(err.message).includes('UNIQUE')) {
+      if (err.code === '23505') { // PostgreSQL unique violation error code
         const e = new Error('Category already exists');
         e.code = 'DUPLICATE';
         throw e;
@@ -57,44 +83,48 @@ const statements = {
     }
   },
   async getAllCategories() {
-    return db.prepare('SELECT id, name, created_at, updated_at FROM categories ORDER BY name').all();
+    const result = await pool.query('SELECT id, name, created_at, updated_at FROM categories ORDER BY name');
+    return result.rows;
   },
   async getCategoryById(id) {
-    return db.prepare('SELECT id, name, created_at, updated_at FROM categories WHERE id = ?').get(id) || null;
+    const result = await pool.query('SELECT id, name, created_at, updated_at FROM categories WHERE id = $1', [id]);
+    return result.rows[0] || null;
   },
   async getCategoryByName(name) {
-    return db.prepare('SELECT id, name, created_at, updated_at FROM categories WHERE name = ?').get(name) || null;
+    const result = await pool.query('SELECT id, name, created_at, updated_at FROM categories WHERE name = $1', [name]);
+    return result.rows[0] || null;
   },
   async updateCategory(id, name) {
     const ts = nowTS();
-    const existing = db.prepare('SELECT id FROM categories WHERE name = ? AND id <> ?').get(name, id);
-    if (existing) {
+    const existing = await pool.query('SELECT id FROM categories WHERE name = $1 AND id <> $2', [name, id]);
+    if (existing.rows.length > 0) {
       const err = new Error('Category name already exists');
       err.code = 'DUPLICATE';
       throw err;
     }
-    const info = db.prepare('UPDATE categories SET name = ?, updated_at = ? WHERE id = ?').run(name, ts, id);
-    if (info.changes === 0) return null;
-    return db.prepare('SELECT id, name, created_at, updated_at FROM categories WHERE id = ?').get(id);
+    const result = await pool.query(
+      'UPDATE categories SET name = $1, updated_at = $2 WHERE id = $3 RETURNING *',
+      [name, ts, id]
+    );
+    return result.rows[0] || null;
   },
   async deleteCategory(id) {
-    const info = db.prepare('DELETE FROM categories WHERE id = ?').run(id);
-    return info.changes > 0;
+    const result = await pool.query('DELETE FROM categories WHERE id = $1', [id]);
+    return result.rowCount > 0;
   },
 
   // Flashcards
   async insertFlashcard(category_id, front, back, back_format, code_language) {
     const ts = nowTS();
     try {
-      const stmt = db.prepare(`
-        INSERT INTO flashcards (category_id, front, back, back_format, code_language, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `);
-      const info = stmt.run(Number(category_id), front, back, back_format, code_language || null, ts, ts);
-      const row = db.prepare('SELECT id, category_id, front, back, back_format, code_language, created_at, updated_at FROM flashcards WHERE id = ?').get(info.lastInsertRowid);
-      return row;
+      const result = await pool.query(
+        `INSERT INTO flashcards (category_id, front, back, back_format, code_language, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+        [Number(category_id), front, back, back_format, code_language || null, ts, ts]
+      );
+      return result.rows[0];
     } catch (err) {
-      if (String(err.message).includes('FOREIGN KEY')) {
+      if (err.code === '23503') { // PostgreSQL foreign key violation error code
         const e = new Error('Invalid category ID');
         e.code = 'FOREIGN_KEY';
         throw e;
@@ -103,58 +133,60 @@ const statements = {
     }
   },
   async getAllFlashcards() {
-    const rows = db.prepare(`
+    const result = await pool.query(`
       SELECT f.id, f.category_id, f.front, f.back, f.back_format, f.code_language, f.created_at, f.updated_at,
              c.name AS category_name
       FROM flashcards f
       LEFT JOIN categories c ON c.id = f.category_id
       ORDER BY c.name ASC, f.id ASC
-    `).all();
-    return rows;
+    `);
+    return result.rows;
   },
   async getFlashcardsByCategory(categoryId) {
-    const rows = db.prepare(`
+    const result = await pool.query(`
       SELECT f.id, f.category_id, f.front, f.back, f.back_format, f.code_language, f.created_at, f.updated_at,
              c.name AS category_name
       FROM flashcards f
       LEFT JOIN categories c ON c.id = f.category_id
-      WHERE f.category_id = ?
+      WHERE f.category_id = $1
       ORDER BY f.id ASC
-    `).all(categoryId);
-    return rows;
+    `, [categoryId]);
+    return result.rows;
   },
   async getFlashcardsByCategoryName(categoryName) {
-    const cat = db.prepare('SELECT id FROM categories WHERE name = ?').get(categoryName);
-    if (!cat) return [];
-    return statements.getFlashcardsByCategory(cat.id);
+    const catResult = await pool.query('SELECT id FROM categories WHERE name = $1', [categoryName]);
+    if (catResult.rows.length === 0) return [];
+    return statements.getFlashcardsByCategory(catResult.rows[0].id);
   },
   async getFlashcardById(id) {
-    return db.prepare(`
+    const result = await pool.query(`
       SELECT f.id, f.category_id, f.front, f.back, f.back_format, f.code_language, f.created_at, f.updated_at,
              c.name AS category_name
       FROM flashcards f
       LEFT JOIN categories c ON c.id = f.category_id
-      WHERE f.id = ?
-    `).get(id) || null;
+      WHERE f.id = $1
+    `, [id]);
+    return result.rows[0] || null;
   },
   async updateFlashcard(id, front, back, back_format, code_language) {
     const ts = nowTS();
-    const info = db.prepare(`
-      UPDATE flashcards
-      SET front = ?, back = ?, back_format = ?, code_language = ?, updated_at = ?
-      WHERE id = ?
-    `).run(front, back, back_format, code_language || null, ts, id);
-    if (info.changes === 0) return null;
+    const result = await pool.query(
+      `UPDATE flashcards
+       SET front = $1, back = $2, back_format = $3, code_language = $4, updated_at = $5
+       WHERE id = $6 RETURNING *`,
+      [front, back, back_format, code_language || null, ts, id]
+    );
+    if (result.rowCount === 0) return null;
     return statements.getFlashcardById(id);
   },
   async deleteFlashcard(id) {
-    const info = db.prepare('DELETE FROM flashcards WHERE id = ?').run(id);
-    return info.changes > 0;
+    const result = await pool.query('DELETE FROM flashcards WHERE id = $1', [id]);
+    return result.rowCount > 0;
   },
   async countFlashcardsByCategory(categoryId) {
-    const row = db.prepare('SELECT COUNT(*) as count FROM flashcards WHERE category_id = ?').get(categoryId);
-    return { count: row.count };
+    const result = await pool.query('SELECT COUNT(*) as count FROM flashcards WHERE category_id = $1', [categoryId]);
+    return { count: parseInt(result.rows[0].count) };
   }
 };
 
-export { statements };
+export { statements, pool };
