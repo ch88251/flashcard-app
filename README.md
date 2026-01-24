@@ -3,7 +3,7 @@
 ## Overview
 
 This is a lightweight flashcard study app built with React (Vite + TailwindCSS) 
-and a SQLite database with Node/Express API.
+and a PostgreSQL database with Node/Express API.
 
 The app provides a simple study interface (flip front/back) and an admin UI 
 for managing categories and flashcards.
@@ -12,7 +12,53 @@ for managing categories and flashcards.
 
 - Frontend: React + Vite, TailwindCSS for styling
 - Backend: Node.js + Express.js
-- Database: SQLite (with better-sqlite3)
+- Database: PostgreSQL
+
+## Database Setup
+
+### Local Development with Docker
+
+The easiest way to run PostgreSQL locally is using Docker:
+
+```bash
+# Start PostgreSQL
+docker-compose up -d
+
+# Stop PostgreSQL
+docker-compose down
+
+# Stop and remove data
+docker-compose down -v
+```
+
+### Manual PostgreSQL Setup
+
+If you prefer to run PostgreSQL manually:
+
+1. Install PostgreSQL on your system
+2. Create a database and user:
+   ```sql
+   CREATE DATABASE flashcards;
+   CREATE USER flashcards WITH PASSWORD 'flashcards';
+   GRANT ALL PRIVILEGES ON DATABASE flashcards TO flashcards;
+   ```
+3. Configure connection in `.env.local` (copy from `.env.example`)
+
+### Environment Configuration
+
+Create a `.env.local` file (copy from `.env.example`):
+
+```bash
+# For local Docker setup:
+PGHOST=localhost
+PGPORT=5432
+PGUSER=flashcards
+PGPASSWORD=flashcards
+PGDATABASE=flashcards
+
+# Or use a connection string for hosted databases:
+# DATABASE_URL=postgres://user:password@host:port/database
+```
 
 ## Running The Application
 
@@ -77,16 +123,16 @@ The seed data format in `seed-data.json`:
 
 ## Database Schema
 
-The SQLite database consists of two main tables:
+The PostgreSQL database consists of two main tables:
 
 **Categories**
-- `id` - Auto-increment primary key
+- `id` - Auto-increment primary key (SERIAL)
 - `name` - Unique category name
 - `created_at` - Timestamp
 - `updated_at` - Timestamp
 
 **Flashcards**
-- `id` - Auto-increment primary key
+- `id` - Auto-increment primary key (SERIAL)
 - `category_id` - Foreign key to categories (cascade delete)
 - `front` - Question/front of card
 - `back` - Answer/back of card

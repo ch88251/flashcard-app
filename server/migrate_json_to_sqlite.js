@@ -10,7 +10,7 @@ const repoRoot = path.resolve(__dirname, '..');
 const dataJsonPath = path.join(repoRoot, 'public', 'data.json');
 
 async function migrate() {
-  console.log('Starting migration from data.json to SQLite...');
+  console.log('Starting migration from data.json to database...');
   
   // Read data.json
   if (!fs.existsSync(dataJsonPath)) {
@@ -95,7 +95,7 @@ async function migrate() {
     }
 
     try {
-      const newCard = await statements.insertFlashcard(
+      await statements.insertFlashcard(
         newCategoryId,
         flashcard.front,
         flashcard.back,
