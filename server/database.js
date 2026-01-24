@@ -54,19 +54,14 @@ async function initializeDatabase() {
 // Initialize the database when module is loaded
 await initializeDatabase();
 
-function nowTS() {
-  return new Date().toISOString().replace('T', ' ').slice(0, 19);
-}
-
 const statements = {
 
   // Categories
   async insertCategory(name) {
-    const ts = nowTS();
     try {
       const result = await pool.query(
-        'INSERT INTO categories (name, created_at, updated_at) VALUES ($1, $2, $3) RETURNING *',
-        [name, ts, ts]
+        'INSERT INTO categories (name, created_at, updated_at) VALUES ($1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *',
+        [name]
       );
       return result.rows[0];
     } catch (err) {
@@ -91,7 +86,6 @@ const statements = {
     return result.rows[0] || null;
   },
   async updateCategory(id, name) {
-    const ts = nowTS();
     const existing = await pool.query('SELECT id FROM categories WHERE name = $1 AND id <> $2', [name, id]);
     if (existing.rows.length > 0) {
       const err = new Error('Category name already exists');
@@ -99,8 +93,8 @@ const statements = {
       throw err;
     }
     const result = await pool.query(
-      'UPDATE categories SET name = $1, updated_at = $2 WHERE id = $3 RETURNING *',
-      [name, ts, id]
+      'UPDATE categories SET name = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING *',
+      [name, id]
     );
     return result.rows[0] || null;
   },
@@ -111,12 +105,11 @@ const statements = {
 
   // Flashcards
   async insertFlashcard(category_id, front, back, back_format, code_language) {
-    const ts = nowTS();
     try {
       const result = await pool.query(
         `INSERT INTO flashcards (category_id, front, back, back_format, code_language, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-        [Number(category_id), front, back, back_format, code_language || null, ts, ts]
+         VALUES ($1, $2, $3, $4, $5, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING *`,
+        [Number(category_id), front, back, back_format, code_language || null]
       );
       return result.rows[0];
     } catch (err) {
@@ -165,12 +158,11 @@ const statements = {
     return result.rows[0] || null;
   },
   async updateFlashcard(id, front, back, back_format, code_language) {
-    const ts = nowTS();
     const result = await pool.query(
       `UPDATE flashcards
-       SET front = $1, back = $2, back_format = $3, code_language = $4, updated_at = $5
-       WHERE id = $6 RETURNING *`,
-      [front, back, back_format, code_language || null, ts, id]
+       SET front = $1, back = $2, back_format = $3, code_language = $4, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $5 RETURNING *`,
+      [front, back, back_format, code_language || null, id]
     );
     if (result.rowCount === 0) return null;
     return statements.getFlashcardById(id);
