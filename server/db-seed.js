@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 const seedDataPath = path.join(__dirname, 'seed-data.json');
 
 async function seedDatabase() {
-  console.log('Seeding SQLite database...');
+  console.log('Seeding database...');
   
   // Read seed data
   if (!fs.existsSync(seedDataPath)) {
