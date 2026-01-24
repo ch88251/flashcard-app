@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import fs from 'fs';
 import path from 'path';
 import dotenv from 'dotenv';
 import { Client } from 'pg';
