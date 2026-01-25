@@ -52,7 +52,7 @@ function Flashcard({ front, back, backFormat = 'sentence', code_language, flippe
     return <div data-testid="flashcard-back-text" className="break-words mt-2 leading-relaxed">{back}</div>;
   };
 
-  const containerBase = "w-[320px] md:w-[500px] h-[240px] md:h-[300px] flex items-start justify-center rounded-2xl shadow-xl p-8 text-xl md:text-2xl select-none transition-all duration-500 ease-in-out cursor-pointer overflow-y-auto";
+  const containerBase = "w-[320px] md:w-[500px] h-[240px] md:h-[300px] flex items-start justify-left rounded-2xl shadow-xl p-8 text-xl md:text-2xl select-none transition-all duration-500 ease-in-out cursor-pointer overflow-y-auto";
   const containerClass = `${containerBase} ${flipped ? 'bg-green-100 pt-4' : 'bg-white'}`;
   return (
     <div className={containerClass} onClick={onFlip}>
@@ -61,7 +61,7 @@ function Flashcard({ front, back, backFormat = 'sentence', code_language, flippe
           {renderBack()}
         </div>
       ) : (
-        <div data-testid="flashcard-front" className="text-center break-words w-full">{front}</div>
+        <div data-testid="flashcard-front" className="text-left break-words w-full">{front}</div>
       )}
     </div>
   );
