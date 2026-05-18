@@ -17,6 +17,11 @@ const handleError = (res, error, message = 'Internal server error') => {
 
 // Routes
 
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "ok" });
+});
+
 // Get all categories
 app.get('/api/categories', async (req, res) => {
   try {
