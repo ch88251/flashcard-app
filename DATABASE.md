@@ -30,15 +30,10 @@ You should see something like this:
 
 **Create the backup:**
 ```
-docker exec -t flashcards-db pg_dump \
+docker exec -i flashcards-db pg_dump \
   -U flashcards \
   -F c \
-  -f /tmp/flashcards_backup.dump \
-  flashcards
-```
-**Copy it to your host:**
-```
-docker cp flashcards-db:/tmp/flashcards_backup.dump ./flashcards_backup.dump
+  flashcards > flashcards_backup.dump
 ```
 
 ### Step 3: Verify the backup file
@@ -63,6 +58,9 @@ docker compose up -d
 
 ```
 docker exec -i flashcards-db pg_restore \
+  --clean \
+  --if-exists \
+  --no-owner \
   -U flashcards \
   -d flashcards < flashcards_backup.dump
 ```
